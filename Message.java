@@ -5,14 +5,28 @@ public class Message {
 	}
 	
 	public MessageType type;
-	public Client sender;                // Only used for request-type messages
+	private Client sender;                // Only used for request-type messages
 	
-	public Message(MessageType type) {
+	private Message(MessageType type) {
 		this.type = type;
 	}
 	
-	public void setSender(Client sender) {
-		this.sender = sender;
+	public static Message createRequestMessage(Client sender) {
+		Message m = new Message(MessageType.REQUEST);
+		m.sender = sender;
+		return m;
+	}
+	
+	public static Message createToken() {
+		return new Message(MessageType.TOKEN);
+	}
+	
+	public static Message createTerminationMessage() {
+		return new Message(MessageType.TERMINATE);
+	}
+	
+	public Client getSender() {
+		return sender;
 	}
 	
 	public String toString() {

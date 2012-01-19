@@ -2,7 +2,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 
 public class Server extends Thread {
 	
-	public static final boolean PRINT_CSV_VALUES = true;
+	public static final boolean PRINT_CSV_VALUES = false;
 	
 	private ArrayBlockingQueue<Message> requestQueue;
 	private ArrayBlockingQueue<Message> tokenQueue;
@@ -16,7 +16,7 @@ public class Server extends Thread {
 		this.numLiveClients = numLiveClients;
 		
 		// Putting token in tokenQueue
-		tokenQueue.add(new Message(Message.MessageType.TOKEN));
+		tokenQueue.add(Message.createToken());
 	}
 	
 	public void run() {
@@ -28,17 +28,9 @@ public class Server extends Thread {
 			client.start();
 		}
 		
-		// 
+		// Server event loop
 		while (numLiveClients > 0) {
-			// Wait for token
-			Message token = null;
-			try {
-				token = tokenQueue.take();
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-			
-			// Wait for request 
+			// Wait for message
 			Message request = null;
 			try {
 				request = requestQueue.take();
@@ -49,27 +41,22 @@ public class Server extends Thread {
 			// Process request
 			switch (request.type) {
 				case REQUEST:
-					request.sender.inputQueue.add(token);
+					// Wait for token
+					Message token = null;
+					try {
+						token = tokenQueue.take();
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+					request.getSender().inputQueue.add(token);
 					break;
 			
 				case TERMINATE:
 					numLiveClients--;
-					// Put token back, since termination does not require moving token
-					try {
-						tokenQueue.put(token);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
 					break;
 					
 				default:
-					System.out.println("Null request found!");
-					// Put token back, since termination does not require moving token
-					try {
-						tokenQueue.put(token);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
+					System.err.println("Unknown request received");
 					break;
 			}
 		}
