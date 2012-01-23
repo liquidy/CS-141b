@@ -77,22 +77,25 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet implements
 		DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
 		Transaction txn = datastore.beginTransaction();
 		try {
-			Entity documentEntity = datastore.get(KeyFactory.stringToKey(documentKey));
-			document = (UnlockedDocument) documentEntity.getProperty(DOCUMENT_CONTENT_PNAME);
-			lockedBy = (String) documentEntity.getProperty(LOCKED_BY_PNAME);
-			lockedUntil = (Date) documentEntity.getProperty(LOCKED_UNTIL_PNAME);
-			if (lockedUntil.before(currentDate)) {
-				// Document is available; lock the document using datastore.
-				documentEntity.setProperty(LOCKED_BY_PNAME, clientHash);
-				currentCalendar.add(Calendar.SECOND, LOCK_TIMEOUT);
-				documentEntity.setProperty(LOCKED_UNTIL_PNAME, currentCalendar.getTime());
+			Entity docEntity = datastore.get(KeyFactory.stringToKey(documentKey));
+			document = (UnlockedDocument) docEntity.getProperty(DOCUMENT_CONTENT_PNAME);
+			lockedBy = (String) docEntity.getProperty(LOCKED_BY_PNAME);
+			lockedUntil = (Date) docEntity.getProperty(LOCKED_UNTIL_PNAME);
+			if (lockedUntil != null) {
+				if (lockedUntil.before(currentDate)) {
+					// Document is available for locking, since timestamp has passed.
+					lockDocEntity(docEntity, currentCalendar, clientHash);
+				} else {
+					throw new LockUnavailable();
+				}
 			} else {
-				throw new LockUnavailable();
+				// Document is available for locking, since no timestamp has been set.
+				lockDocEntity(docEntity, currentCalendar, clientHash);
 			}
 			
 	    txn.commit();
 		} catch (EntityNotFoundException e) {
-			e.printStackTrace();
+			return null;
 		} finally {
 	    if (txn.isActive()) {
         txn.rollback();
@@ -103,6 +106,12 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet implements
 				document.getKey(), document.getTitle(), document.getContents());
 	}
 	
+	private void lockDocEntity(Entity docEntity, Calendar currentCalendar, String clientHash) {
+		docEntity.setProperty(LOCKED_BY_PNAME, clientHash);
+		currentCalendar.add(Calendar.SECOND, LOCK_TIMEOUT);
+		docEntity.setProperty(LOCKED_UNTIL_PNAME, currentCalendar.getTime());
+	}
+	
 	@Override
 	public UnlockedDocument getDocument(String documentKey) {
 		DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
@@ -110,7 +119,7 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet implements
 		try {
 			document = datastore.get(KeyFactory.stringToKey(documentKey));
 		} catch (EntityNotFoundException e) {
-			e.printStackTrace();
+			return null;
 		}
 		return (UnlockedDocument) document.getProperty(DOCUMENT_CONTENT_PNAME);
 	}
@@ -147,14 +156,12 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet implements
 			Transaction txn = datastore.beginTransaction();
 			try {
 				// Unlock the doc by setting the appropriate DS fields for this doc.
-				Entity docEntity = datastore.get(KeyFactory.stringToKey(doc.getKey()));
+				Entity docEntity = new Entity(DOCUMENT_KIND_NAME, doc.getKey());
 				docEntity.setProperty(LOCKED_BY_PNAME, "");
 				docEntity.setProperty(LOCKED_UNTIL_PNAME, currentDate);
 				datastore.put(docEntity);
 				
 				txn.commit();
-			} catch (EntityNotFoundException e) {
-				e.printStackTrace();
 			} finally {
 		    if (txn.isActive()) {
 	        txn.rollback();
