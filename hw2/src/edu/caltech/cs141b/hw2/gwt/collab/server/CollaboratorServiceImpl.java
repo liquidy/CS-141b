@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-import java.util.UUID;
 import java.util.logging.Logger;
 
 import javax.jdo.PersistenceManager;
@@ -18,8 +17,6 @@ import edu.caltech.cs141b.hw2.gwt.collab.shared.LockUnavailable;
 import edu.caltech.cs141b.hw2.gwt.collab.shared.LockedDocument;
 import edu.caltech.cs141b.hw2.gwt.collab.shared.UnlockedDocument;
 
-import com.google.appengine.api.datastore.DatastoreService;
-import com.google.appengine.api.datastore.DatastoreServiceFactory;
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
@@ -34,7 +31,6 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet implements
 	public static final int LOCK_TIMEOUT = 30;     // Seconds
 	private static final Logger log = Logger.getLogger(CollaboratorServiceImpl.class.toString());
 	
-	private DatastoreService ds = DatastoreServiceFactory.getDatastoreService();
 	private PersistenceManager pm = PMF.get().getPersistenceManager();
 	
 	@Override
@@ -60,7 +56,7 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet implements
 			return docMetaList;
 		}
 		
-		// Convert answer into metadata and return it.
+		// Convert answer into list of metadata and return it.
 		for (Document doc : documents) {
 			String docKey = KeyFactory.keyToString(doc.getKey());
 			String docTitle = doc.getTitle();
@@ -89,7 +85,7 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet implements
 			try {
 				txn.begin();
 				
-		    persistedDoc.setLockedBy(UUID.randomUUID().toString());
+		    persistedDoc.setLockedBy(getThreadLocalRequest().getRemoteAddr());
 		    Calendar cal = Calendar.getInstance();
 		    cal.add(Calendar.SECOND, LOCK_TIMEOUT);
 		    persistedDoc.setLockedUntil(cal.getTime());
@@ -141,22 +137,24 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet implements
 		UnlockedDocument unlockedDoc = doc.unlock();
 		
 		// Before returning the unlocked document, we need to lock via DS.
+		Key key = null;
+		if (doc.getKey() != null)
+			key = KeyFactory.stringToKey(doc.getKey());
+		Document persistedDoc = getDocument(key);
+		if (persistedDoc == null)
+			return null;
+		Date lockedUntil = persistedDoc.getLockedUntil();
 		Date currentDate = new Date();
-		Date lockedUntil = doc.getLockedUntil();
-		
 		// We throw LockExpired only if lockedUntil is set and it's an expired date.
 		// In all other cases, we just save the document via DS.
 		if (lockedUntil != null && lockedUntil.before(currentDate)) {
 			throw new LockExpired();
 		} else {
-			Key key = null;
-			if (doc.getKey() != null) {
-				key = KeyFactory.stringToKey(doc.getKey());
-			}
+			// Pack up document JDO.
 			Document document = new Document(
 					unlockedDoc.getTitle(), 
 					unlockedDoc.getContents(),
-					UUID.randomUUID().toString(),
+					getThreadLocalRequest().getRemoteAddr(),
 					currentDate);
 			document.setKey(key);
 			
@@ -171,10 +169,12 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet implements
 	        txn.rollback();
 		    }
 			}
+			
+			// Pack up UnlockedDocument to return.
 			unlockedDoc = new UnlockedDocument(
 					KeyFactory.keyToString(document.getKey()), 
-					doc.getTitle(), 
-					doc.getContents());
+					document.getTitle(), 
+					document.getContents());
 		}
 		
 		return unlockedDoc;
@@ -200,7 +200,7 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet implements
 			try {
 				txn.begin();
 				
-		    persistedDoc.setLockedBy(UUID.randomUUID().toString());
+		    persistedDoc.setLockedBy(getThreadLocalRequest().getRemoteAddr());
 		    persistedDoc.setLockedUntil(currentDate);
 		    pm.makePersistent(persistedDoc);
 		    
@@ -230,4 +230,3 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet implements
 	}
 
 }
-
