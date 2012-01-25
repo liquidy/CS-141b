@@ -1,12 +1,15 @@
 package edu.caltech.cs141b.hw2.gwt.collab.server;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 import java.util.logging.Logger;
+
+import javax.jdo.PersistenceManager;
+import javax.jdo.Query;
+import javax.jdo.Transaction;
 
 import edu.caltech.cs141b.hw2.gwt.collab.client.CollaboratorService;
 import edu.caltech.cs141b.hw2.gwt.collab.shared.DocumentMetadata;
@@ -17,12 +20,8 @@ import edu.caltech.cs141b.hw2.gwt.collab.shared.UnlockedDocument;
 
 import com.google.appengine.api.datastore.DatastoreService;
 import com.google.appengine.api.datastore.DatastoreServiceFactory;
-import com.google.appengine.api.datastore.Entity;
-import com.google.appengine.api.datastore.EntityNotFoundException;
-import com.google.appengine.api.datastore.FetchOptions;
+import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
-import com.google.appengine.api.datastore.Query;
-import com.google.appengine.api.datastore.Transaction;
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 
 /**
@@ -32,144 +31,202 @@ import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 public class CollaboratorServiceImpl extends RemoteServiceServlet implements
 		CollaboratorService {
 	
-	public static final String DOCUMENT_KIND_NAME = "Document";
-	public static final String DOCUMENT_CONTENT_PNAME = "documentContent";
-	public static final String LOCKED_BY_PNAME = "lockedBy";
-	public static final String LOCKED_UNTIL_PNAME = "lockedUntil";
-	public static final int LOCK_TIMEOUT = 100;                       // Seconds
+	public static final int LOCK_TIMEOUT = 30;     // Seconds
 	private static final Logger log = Logger.getLogger(CollaboratorServiceImpl.class.toString());
+	
+	private DatastoreService ds = DatastoreServiceFactory.getDatastoreService();
+	private PersistenceManager pm = PMF.get().getPersistenceManager();
 	
 	@Override
 	public List<DocumentMetadata> getDocumentList() {
-		List<DocumentMetadata> docsList = new ArrayList<DocumentMetadata>();
-		Query docsQuery = new Query(DOCUMENT_KIND_NAME);
-		DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
-		List<Entity> results = datastore.prepare(docsQuery).asList(
-				FetchOptions.Builder.withDefaults());
-		for (Entity en : results) {
-			String docKey = KeyFactory.keyToString(en.getKey());
-			String docTitle = 
-					((UnlockedDocument) en.getProperty(DOCUMENT_CONTENT_PNAME)).getTitle();
-			docsList.add(new DocumentMetadata(docKey, docTitle));
+		List<DocumentMetadata> docMetaList = new ArrayList<DocumentMetadata>();
+		
+		// Get documents by querying all Document.class types
+		List<Document> documents = null;
+		Transaction txn = pm.currentTransaction();
+		try {
+			txn.begin();
+			
+			Query q = pm.newQuery(Document.class);
+	    documents = (List<Document>) q.execute();
+	    
+			txn.commit();
+		} finally {
+	    if (txn.isActive()) {
+        txn.rollback();
+	    }
 		}
-		return docsList;
+		if (documents == null) {
+			return docMetaList;
+		}
+		
+		// Convert answer into metadata and return it.
+		for (Document doc : documents) {
+			String docKey = KeyFactory.keyToString(doc.getKey());
+			String docTitle = doc.getTitle();
+			docMetaList.add(new DocumentMetadata(docKey, docTitle));
+		}
+		
+		return docMetaList;
 	}
 
 	@Override
 	public LockedDocument lockDocument(String documentKey)
 			throws LockUnavailable {
 		
-		// Generate hash for the client by using MD5 on the current time
-		Calendar currentCalendar = Calendar.getInstance();
-		Date currentDate = currentCalendar.getTime();
-		MessageDigest digest = null;
-		try {
-			digest = java.security.MessageDigest.getInstance("MD5");
-		} catch (NoSuchAlgorithmException e1) {
-			e1.printStackTrace();
-		}
-		digest.update(currentDate.toString().getBytes()); 
-		String clientHash = digest.digest().toString();
-		
-		UnlockedDocument document = null;
-		String lockedBy = null;
-		Date lockedUntil = null;
-		DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
-		Transaction txn = datastore.beginTransaction();
-		try {
-			Entity docEntity = datastore.get(KeyFactory.stringToKey(documentKey));
-			document = (UnlockedDocument) docEntity.getProperty(DOCUMENT_CONTENT_PNAME);
-			lockedBy = (String) docEntity.getProperty(LOCKED_BY_PNAME);
-			lockedUntil = (Date) docEntity.getProperty(LOCKED_UNTIL_PNAME);
-			if (lockedUntil != null) {
-				if (lockedUntil.before(currentDate)) {
-					// Document is available for locking, since timestamp has passed.
-					lockDocEntity(docEntity, currentCalendar, clientHash);
-				} else {
-					throw new LockUnavailable();
-				}
-			} else {
-				// Document is available for locking, since no timestamp has been set.
-				lockDocEntity(docEntity, currentCalendar, clientHash);
-			}
-			
-	    txn.commit();
-		} catch (EntityNotFoundException e) {
+		Key key = KeyFactory.stringToKey(documentKey);
+		Document persistedDoc = getDocument(key);
+		if (persistedDoc == null)
 			return null;
-		} finally {
-	    if (txn.isActive()) {
-        txn.rollback();
-	    }
-		}
 		
-		return new LockedDocument(lockedBy, lockedUntil,
-				document.getKey(), document.getTitle(), document.getContents());
-	}
-	
-	private void lockDocEntity(Entity docEntity, Calendar currentCalendar, String clientHash) {
-		docEntity.setProperty(LOCKED_BY_PNAME, clientHash);
-		currentCalendar.add(Calendar.SECOND, LOCK_TIMEOUT);
-		docEntity.setProperty(LOCKED_UNTIL_PNAME, currentCalendar.getTime());
-	}
-	
-	@Override
-	public UnlockedDocument getDocument(String documentKey) {
-		DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
-		Entity document = null;
-		try {
-			document = datastore.get(KeyFactory.stringToKey(documentKey));
-		} catch (EntityNotFoundException e) {
-			return null;
-		}
-		return (UnlockedDocument) document.getProperty(DOCUMENT_CONTENT_PNAME);
-	}
-
-	@Override
-	public UnlockedDocument saveDocument(LockedDocument doc)
-			throws LockExpired {
-		
-		// This method should throw LockExpired exception if lock has expired.
-		releaseLock(doc);
-		
-		DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
-		Transaction txn = datastore.beginTransaction();
-		try {
-	    Entity document = new Entity(DOCUMENT_KIND_NAME, doc.getKey());
-	    document.setProperty(DOCUMENT_CONTENT_PNAME, doc);
-	    datastore.put(document);
-
-	    txn.commit();
-		} finally {
-	    if (txn.isActive()) {
-        txn.rollback();
-	    }
-		}
-		
-		return doc.unlock();
-	}
-	
-	@Override
-	public void releaseLock(LockedDocument doc) throws LockExpired {
+		Date lockedUntil = persistedDoc.getLockedUntil();
 		Date currentDate = new Date();
-		if (doc.getLockedUntil().before(currentDate)) {
-			DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
-			Transaction txn = datastore.beginTransaction();
+		if (currentDate.before(lockedUntil)) {
+			throw new LockUnavailable();
+		} else {
+			// Document is available for locking.
+			Transaction txn = pm.currentTransaction();
 			try {
-				// Unlock the doc by setting the appropriate DS fields for this doc.
-				Entity docEntity = new Entity(DOCUMENT_KIND_NAME, doc.getKey());
-				docEntity.setProperty(LOCKED_BY_PNAME, "");
-				docEntity.setProperty(LOCKED_UNTIL_PNAME, currentDate);
-				datastore.put(docEntity);
+				txn.begin();
 				
+		    persistedDoc.setLockedBy(UUID.randomUUID().toString());
+		    Calendar cal = Calendar.getInstance();
+		    cal.add(Calendar.SECOND, LOCK_TIMEOUT);
+		    persistedDoc.setLockedUntil(cal.getTime());
+		    pm.makePersistent(persistedDoc);
+		    
 				txn.commit();
 			} finally {
 		    if (txn.isActive()) {
 	        txn.rollback();
 		    }
 			}
-		} else {
-			throw new LockExpired();
 		}
+		
+		return new LockedDocument(
+				persistedDoc.getLockedBy(), 
+				persistedDoc.getLockedUntil(), 
+				KeyFactory.keyToString(persistedDoc.getKey()),
+				persistedDoc.getTitle(),
+				persistedDoc.getContents());
+	}
+	
+	@Override
+	public UnlockedDocument getDocument(String documentKey) {
+		Document persistedDoc = null;
+		Transaction txn = pm.currentTransaction();
+		try {
+			txn.begin();
+			
+			Key key = KeyFactory.stringToKey(documentKey);
+			persistedDoc = pm.getObjectById(Document.class, key);
+	    
+			txn.commit();
+		} finally {
+	    if (txn.isActive()) {
+        txn.rollback();
+	    }
+		}
+		if (persistedDoc == null)
+			return null;
+		
+		return new UnlockedDocument(
+				documentKey, persistedDoc.getTitle(), persistedDoc.getContents());
+	}
+
+	@Override
+	public UnlockedDocument saveDocument(LockedDocument doc)
+			throws LockExpired {
+		
+		UnlockedDocument unlockedDoc = doc.unlock();
+		
+		// Before returning the unlocked document, we need to lock via DS.
+		Date currentDate = new Date();
+		Date lockedUntil = doc.getLockedUntil();
+		
+		// We throw LockExpired only if lockedUntil is set and it's an expired date.
+		// In all other cases, we just save the document via DS.
+		if (lockedUntil != null && lockedUntil.before(currentDate)) {
+			throw new LockExpired();
+		} else {
+			Key key = null;
+			if (doc.getKey() != null) {
+				key = KeyFactory.stringToKey(doc.getKey());
+			}
+			Document document = new Document(
+					unlockedDoc.getTitle(), 
+					unlockedDoc.getContents(),
+					UUID.randomUUID().toString(),
+					currentDate);
+			document.setKey(key);
+			
+			// Save the document.
+			Transaction txn = pm.currentTransaction();
+			try {
+				txn.begin();
+		    pm.makePersistent(document);
+				txn.commit();
+			} finally {
+		    if (txn.isActive()) {
+	        txn.rollback();
+		    }
+			}
+			unlockedDoc = new UnlockedDocument(
+					KeyFactory.keyToString(document.getKey()), 
+					doc.getTitle(), 
+					doc.getContents());
+		}
+		
+		return unlockedDoc;
+	}
+	
+	@Override
+	public void releaseLock(LockedDocument doc) throws LockExpired {
+		if (doc.getKey() == null)
+			return;
+		
+		Key key = KeyFactory.stringToKey(doc.getKey());
+		Document persistedDoc = getDocument(key);
+		if (persistedDoc == null)
+			return;
+		
+		Date lockedUntil = persistedDoc.getLockedUntil();
+		Date currentDate = new Date();
+		if (lockedUntil.before(currentDate)) {
+			throw new LockExpired();
+		} else {
+			// Release the lock on the document; update lockedBy and lockedUntil.
+			Transaction txn = pm.currentTransaction();
+			try {
+				txn.begin();
+				
+		    persistedDoc.setLockedBy(UUID.randomUUID().toString());
+		    persistedDoc.setLockedUntil(currentDate);
+		    pm.makePersistent(persistedDoc);
+		    
+				txn.commit();
+			} finally {
+		    if (txn.isActive()) {
+	        txn.rollback();
+		    }
+			}
+		}
+	}
+	
+	private Document getDocument(Key key) {
+		// Get the persisted document and check the timestamp.
+		Transaction txn = pm.currentTransaction();
+		Document persistedDoc = null;
+		try {
+			txn.begin();
+			persistedDoc = pm.getObjectById(Document.class, key);
+			txn.commit();
+		} finally {
+			if (txn.isActive()) {
+        txn.rollback();
+	    }
+		}
+		return persistedDoc;
 	}
 
 }
