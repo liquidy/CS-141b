@@ -249,8 +249,8 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet implements
 		if (lockedUntil == null || lockedBy == null)
 			return false;
 		String ipAddress = getThreadLocalRequest().getRemoteAddr();
-		return currentDate.before(lockedUntil);
-//		return currentDate.before(lockedUntil) && 
-//				!ipAddress.equals(lockedBy);
+		
+		return currentDate.before(lockedUntil) && 
+				!ipAddress.equals(lockedBy);
 	}
 }

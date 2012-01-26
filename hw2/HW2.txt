@@ -9,3 +9,13 @@ Notes: We decided to use IP addresses for the lockedBy field. As Michael
 mentioned in one of the answered questions on Moodle, it is difficult to
 create a fully secure application without some sort of login or authentication
 feature. However, we believe that using IP addresses provides a reasonable
+way of identifying unique users, because it at least takes care of the case
+when someone accidentally closes a tab or crashes their computer, and wishes
+to reobtain the same document lock before the timeout ends. In this case, using
+the IP address check allows that user to obtain the lock for the document
+immediately without having to wait the entire timeout (which could be bad if
+the timeout were on the scale of hours). It also allows us to do correct checks
+for if a lock has expired; to check if a lock is expired, we must look to see
+that either: 1) lockedUntil has passed, or 2) someone else (from another IP 
+address, at least) has already acquired the lock (implying that the lock 
+expired).
