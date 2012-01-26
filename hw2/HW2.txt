@@ -1,0 +1,11 @@
+Sasha Boulgakov
+Annie Chin
+Kevin Lo
+
+App Engine app: 2manithreads.appspot.com
+Git repository: https://github.com/liquidy/CS-141b
+
+Notes: We decided to use IP addresses for the lockedBy field. As Michael
+mentioned in one of the answered questions on Moodle, it is difficult to
+create a fully secure application without some sort of login or authentication
+feature. However, we believe that using IP addresses provides a reasonable

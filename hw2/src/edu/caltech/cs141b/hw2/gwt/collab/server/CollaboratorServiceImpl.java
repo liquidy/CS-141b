@@ -83,9 +83,9 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet implements
 			
 			// Using the identity of the client in conjunction with timestamps,
 			// figure out if a document is available to be locked. If it is,
-			// lock it and persist the document; otherwise, throw an exception.
-			if (isLocked(persistedDoc)) {
-				throw new LockUnavailable();
+			// lock it and persist the new timestamps; otherwise, throw an exception.
+			if (isLockUnavailable(persistedDoc)) {
+				throw new LockUnavailable("Document locked until " + persistedDoc.getLockedUntil());
 			} else {
 		    persistedDoc.setLockedBy(getThreadLocalRequest().getRemoteAddr());
 		    Calendar cal = Calendar.getInstance();
@@ -151,18 +151,21 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet implements
 		try {
 			txn.begin();
 			
-			// Get lockedUntil.
+			// We quickly check if the lock has expired, else continue on with
+			// saving and unlocking the document.
 			Date lockedUntil = null;
 			if (key == null) {
 				lockedUntil = doc.getLockedUntil();
 			} else {
 				lockedUntil = pm.getObjectById(Document.class, key).getLockedUntil();
 			}
-			// We quickly check if the lock has expired, else continue on with
-			// saving and unlocking the document.
 			Date currentDate = new Date();
-			if (lockedUntil != null && lockedUntil.before(currentDate))
+			String lockedBy = doc.getLockedBy();
+			String ipAddress = getThreadLocalRequest().getRemoteAddr();
+			if ((lockedUntil != null && lockedUntil.before(currentDate)) || 
+					(lockedBy != null && !lockedBy.equals(ipAddress))) {
 				throw new LockExpired();
+			}
 			
 			// If key is not set, then the Document object should be persisted,
 			// so that a key will automatically be generated. Otherwise, let's
@@ -176,18 +179,18 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet implements
 				persistedDoc.setKey(key);
 			pm.makePersistent(persistedDoc);
 			
+			// Pack up UnlockedDocument to return.
+			unlockedDoc = new UnlockedDocument(
+					KeyFactory.keyToString(persistedDoc.getKey()), 
+					persistedDoc.getTitle(), 
+					persistedDoc.getContents());
+			
 			txn.commit();
 		} finally {
 	    if (txn.isActive()) {
         txn.rollback();
 	    }
 		}
-		
-		// Pack up UnlockedDocument to return.
-		unlockedDoc = new UnlockedDocument(
-				KeyFactory.keyToString(persistedDoc.getKey()), 
-				persistedDoc.getTitle(), 
-				persistedDoc.getContents());
 		
 		return unlockedDoc;
 	}
@@ -208,10 +211,19 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet implements
 			if (persistedDoc == null)
 				return;
 			
-			// Check timestamps to determine if lock is still valid; if so, unlock.
-			Date lockedUntil = persistedDoc.getLockedUntil();
+			// We quickly check if the lock has expired, else continue on with
+			// saving and unlocking the document.
+			Date lockedUntil = null;
+			if (key == null) {
+				lockedUntil = doc.getLockedUntil();
+			} else {
+				lockedUntil = pm.getObjectById(Document.class, key).getLockedUntil();
+			}
 			Date currentDate = new Date();
-			if (lockedUntil != null && lockedUntil.before(currentDate)) {
+			String lockedBy = doc.getLockedBy();
+			String ipAddress = getThreadLocalRequest().getRemoteAddr();
+			if ((lockedUntil != null && lockedUntil.before(currentDate)) || 
+					(lockedBy != null && !lockedBy.equals(ipAddress))) {
 				throw new LockExpired();
 			} else {
 				// Release the lock on the document; update lockedBy and lockedUntil.
@@ -230,15 +242,15 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet implements
 	
 	// This method does a check for whether or not a document is locked based
 	// on the timestamps as well as the lockedBy identity.
-	private boolean isLocked(Document doc) {
+	private boolean isLockUnavailable(Document doc) {
 		Date currentDate = new Date();
 		Date lockedUntil = doc.getLockedUntil();
 		String lockedBy = doc.getLockedBy();
 		if (lockedUntil == null || lockedBy == null)
 			return false;
 		String ipAddress = getThreadLocalRequest().getRemoteAddr();
-		
-		return currentDate.before(lockedUntil) && 
-				!ipAddress.equals(doc.getLockedBy());
+		return currentDate.before(lockedUntil);
+//		return currentDate.before(lockedUntil) && 
+//				!ipAddress.equals(lockedBy);
 	}
 }
