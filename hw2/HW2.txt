@@ -19,3 +19,8 @@ for if a lock has expired; to check if a lock is expired, we must look to see
 that either: 1) lockedUntil has passed, or 2) someone else (from another IP 
 address, at least) has already acquired the lock (implying that the lock 
 expired).
+
+One more thing: transaction rollbacks tend to be expensive (often, an order of
+ magnitude more 
+expensive than the transaction itself), so a massively concurrent system should
+aim to have as few rollbacks as possible. he current behavior should not break anything (specifically, if process A has a lock strictly after process B, then we will never have process A write to the document before process B).
