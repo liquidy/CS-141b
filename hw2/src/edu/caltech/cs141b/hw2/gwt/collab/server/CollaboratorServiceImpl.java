@@ -182,8 +182,9 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 					unlockedDoc.getContents(),
 					getThreadLocalRequest().getRemoteAddr(),
 					currentDate);
-			if (key != null)
+			if (key != null) {
 				persistedDoc.setKey(key);
+			}
 			pm.makePersistent(persistedDoc);
 			
 			// Pack up UnlockedDocument to return.
