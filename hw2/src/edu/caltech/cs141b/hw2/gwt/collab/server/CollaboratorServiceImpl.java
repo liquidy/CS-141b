@@ -25,10 +25,12 @@ import com.google.gwt.user.server.rpc.RemoteServiceServlet;
  * The server side implementation of the RPC service.
  */
 @SuppressWarnings("serial")
-public class CollaboratorServiceImpl extends RemoteServiceServlet implements
-		CollaboratorService {
+public class CollaboratorServiceImpl extends RemoteServiceServlet
+                                     implements CollaboratorService {
 	
 	public static final int LOCK_TIMEOUT = 30;     // Seconds
+	
+	@SuppressWarnings("unused")
 	private static final Logger log = Logger.getLogger(CollaboratorServiceImpl.class.toString());
 	
 	private PersistenceManager pm = PMF.get().getPersistenceManager();
@@ -44,13 +46,17 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet implements
 			txn.begin();
 			
 			Query q = pm.newQuery(Document.class);
-	    documents = (List<Document>) q.execute();
-	    
+			
+			@SuppressWarnings("unchecked")
+			List<Document> documentsTemp = (List<Document>) q.execute();
+
 			txn.commit();
+			
+			documents = documentsTemp;
 		} finally {
-	    if (txn.isActive()) {
-        txn.rollback();
-	    }
+			if (txn.isActive()) {
+				txn.rollback();
+			}
 		}
 		if (documents == null) {
 			return docMetaList;
@@ -87,26 +93,26 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet implements
 			if (isLockUnavailable(persistedDoc)) {
 				throw new LockUnavailable("Document locked until " + persistedDoc.getLockedUntil());
 			} else {
-		    persistedDoc.setLockedBy(getThreadLocalRequest().getRemoteAddr());
-		    Calendar cal = Calendar.getInstance();
-		    cal.add(Calendar.SECOND, LOCK_TIMEOUT);
-		    persistedDoc.setLockedUntil(cal.getTime());
-		    pm.makePersistent(persistedDoc);
+				persistedDoc.setLockedBy(getThreadLocalRequest().getRemoteAddr());
+				Calendar cal = Calendar.getInstance();
+				cal.add(Calendar.SECOND, LOCK_TIMEOUT);
+				persistedDoc.setLockedUntil(cal.getTime());
+				pm.makePersistent(persistedDoc);
 			}
 			
 			txn.commit();
 		} finally {
-	    if (txn.isActive()) {
-        txn.rollback();
-	    }
+			if (txn.isActive()) {
+				txn.rollback();
+			}
 		}
 		
 		return new LockedDocument(
-				persistedDoc.getLockedBy(), 
-				persistedDoc.getLockedUntil(), 
-				KeyFactory.keyToString(persistedDoc.getKey()),
-				persistedDoc.getTitle(),
-				persistedDoc.getContents());
+		        persistedDoc.getLockedBy(), 
+		        persistedDoc.getLockedUntil(), 
+		        KeyFactory.keyToString(persistedDoc.getKey()),
+		        persistedDoc.getTitle(),
+		        persistedDoc.getContents());
 	}
 	
 	@Override
@@ -121,16 +127,16 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet implements
 	    
 			txn.commit();
 		} finally {
-	    if (txn.isActive()) {
-        txn.rollback();
-	    }
+			if (txn.isActive()) {
+				txn.rollback();
+			}
 		}
 		
-		if (persistedDoc == null)
+		if (persistedDoc == null) {
 			return null;
-		else {
+		} else {
 			return new UnlockedDocument(
-					documentKey, persistedDoc.getTitle(), persistedDoc.getContents());
+			        documentKey, persistedDoc.getTitle(), persistedDoc.getContents());
 		}
 	}
 
@@ -142,8 +148,9 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet implements
 		
 		// Before returning the unlocked document, we need to lock via DS.
 		Key key = null;
-		if (doc.getKey() != null)
+		if (doc.getKey() != null) {
 			key = KeyFactory.stringToKey(doc.getKey());
+		}
 		
 		// Persist Document JDO.
 		Document persistedDoc = null;
@@ -187,9 +194,9 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet implements
 			
 			txn.commit();
 		} finally {
-	    if (txn.isActive()) {
-        txn.rollback();
-	    }
+			if (txn.isActive()) {
+				txn.rollback();
+			}
 		}
 		
 		return unlockedDoc;
@@ -197,8 +204,9 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet implements
 	
 	@Override
 	public void releaseLock(LockedDocument doc) throws LockExpired {
-		if (doc.getKey() == null)
+		if (doc.getKey() == null) {
 			return;
+		}
 		
 		Key key = KeyFactory.stringToKey(doc.getKey());
 		Document persistedDoc = null;
@@ -208,8 +216,9 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet implements
 			
 			// Get persisted document.
 			persistedDoc = pm.getObjectById(Document.class, key);
-			if (persistedDoc == null)
+			if (persistedDoc == null) {
 				return;
+			}
 			
 			// We quickly check if the lock has expired, else continue on with
 			// saving and unlocking the document.
@@ -223,20 +232,20 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet implements
 			String lockedBy = doc.getLockedBy();
 			String ipAddress = getThreadLocalRequest().getRemoteAddr();
 			if ((lockedUntil != null && lockedUntil.before(currentDate)) || 
-					(lockedBy != null && !lockedBy.equals(ipAddress))) {
+			    (lockedBy != null && !lockedBy.equals(ipAddress))) {
 				throw new LockExpired();
 			} else {
 				// Release the lock on the document; update lockedBy and lockedUntil.
 				persistedDoc.setLockedBy(getThreadLocalRequest().getRemoteAddr());
-		    persistedDoc.setLockedUntil(currentDate);
-		    pm.makePersistent(persistedDoc);
+				persistedDoc.setLockedUntil(currentDate);
+				pm.makePersistent(persistedDoc);
 			}
 			
 			txn.commit();
 		} finally {
-	    if (txn.isActive()) {
-        txn.rollback();
-	    }
+			if (txn.isActive()) {
+				txn.rollback();
+			}
 		}
 	}
 	
@@ -246,8 +255,9 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet implements
 		Date currentDate = new Date();
 		Date lockedUntil = doc.getLockedUntil();
 		String lockedBy = doc.getLockedBy();
-		if (lockedUntil == null || lockedBy == null)
+		if (lockedUntil == null || lockedBy == null) {
 			return false;
+		}
 		String ipAddress = getThreadLocalRequest().getRemoteAddr();
 		
 		return currentDate.before(lockedUntil) && 
