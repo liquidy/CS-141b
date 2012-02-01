@@ -14,6 +14,7 @@ import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.RichTextArea;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.VerticalPanel;
+import com.google.gwt.user.client.ui.TabPanel;
 
 import edu.caltech.cs141b.hw2.gwt.collab.shared.LockedDocument;
 import edu.caltech.cs141b.hw2.gwt.collab.shared.UnlockedDocument;
@@ -22,11 +23,9 @@ import edu.caltech.cs141b.hw2.gwt.collab.shared.UnlockedDocument;
  * Main class for a single Collaborator widget.
  */
 public class Collaborator extends Composite implements ClickHandler, ChangeHandler {
-
-	public static final boolean DEBUG = true;
-
+	
 	protected CollaboratorServiceAsync collabService;
-
+	
 	// Track document information.
 	protected UnlockedDocument readOnlyDoc = null;
 	protected LockedDocument lockedDoc = null;
@@ -54,6 +53,8 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	// Status tracking.
 	private VerticalPanel statusArea = new VerticalPanel();
 	
+	private TabPanel tp = new TabPanel();
+	
 	/**
 	 * UI initialization.
 	 * 
@@ -62,9 +63,9 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	public Collaborator(CollaboratorServiceAsync collabService) {
 		this.collabService = collabService;
 		HorizontalPanel outerHp = new HorizontalPanel();
-		outerHp.setWidth("100%");
+		outerHp.setWidth("70%");
 		VerticalPanel outerVp = new VerticalPanel();
-		outerVp.setSpacing(10);
+		outerVp.setSpacing(0);
 		
 		VerticalPanel vp = new VerticalPanel();
 		vp.setSpacing(10);
@@ -78,34 +79,20 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		vp.add(hp);
 		DecoratorPanel dp = new DecoratorPanel();
 		dp.setWidth("100%");
+		vp.setHeight("100%");
+		dp.setHeight("100%");
 		dp.add(vp);
 		outerVp.add(dp);
-		outerHp.add(outerVp);
-		
-		if (DEBUG){
-		//	outerHp.add(outerVp);
-		//	outerVp = new VerticalPanel();
-		//	outerVp.setSpacing(20);
-			dp = new DecoratorPanel();
-			dp.setWidth("100%");
-			statusArea.setSpacing(10);
-			statusArea.add(new HTML("<h2>Console</h2>"));
-			dp.add(statusArea);
-			outerVp.add(dp);
-			outerHp.add(outerVp);		
-			
-		}
-		
+	/*	
 		vp = new VerticalPanel();
 		vp.setSpacing(10);
 		vp.add(new HTML("<h2>Selected Document</h2>"));
 		title.setWidth("100%");
 		vp.add(title);
 		contents.setWidth("100%");
-		contents.setHeight("100%");
 		vp.add(contents);
 		hp = new HorizontalPanel();
-		hp.setSpacing(100);
+		hp.setSpacing(10);
 		hp.add(refreshDoc);
 		hp.add(lockButton);
 		hp.add(saveButton);
@@ -113,10 +100,51 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		dp = new DecoratorPanel();
 		dp.setWidth("100%");
 		dp.add(vp);
-		outerVp = new VerticalPanel();
-		outerVp.setSpacing(10);
 		outerVp.add(dp);
+	*/	
 		outerHp.add(outerVp);
+		
+		outerVp = new VerticalPanel();
+		outerVp.setSpacing(20);
+		dp = new DecoratorPanel();
+		dp.setWidth("100%");
+		
+		VerticalPanel temp = new VerticalPanel();
+		temp.setWidth("100%");
+		temp.add(new HTML ("!!"));
+		RichTextArea contents = new RichTextArea();
+		contents.setWidth("100%");
+		temp.add(contents);
+		
+		VerticalPanel temp2 = new VerticalPanel();
+		temp2.add(new HTML ("2"));
+		RichTextArea contents2 = new RichTextArea();
+		contents2.setWidth("100%");
+		temp2.add(contents2);
+		
+		tp.add(temp, "??");
+	    tp.add(temp2, "2");
+	    tp.selectTab(0);
+		hp = new HorizontalPanel();
+		
+		hp.setSpacing(10);
+		hp.add(refreshDoc);
+		hp.add(lockButton);
+		hp.add(saveButton);
+
+		tp.setWidth("100%");
+		outerVp.add(hp);
+		//dp.add(tp);
+		//outerVp.add(dp);
+		outerVp.add(hp);
+		outerVp.add(tp);
+		outerVp.setWidth("100%");
+		outerVp.setHeight("100%");
+		dp.setWidth("100%");
+		dp.setHeight("100%");
+		dp.add(outerVp);
+		outerHp.add(dp);
+		//outerHp.add(outerVp);
 		
 		refreshList.addClickHandler(this);
 		createNew.addClickHandler(this);
