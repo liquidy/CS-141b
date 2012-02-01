@@ -64,6 +64,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		this.collabService = collabService;
 		HorizontalPanel outerHp = new HorizontalPanel();
 		outerHp.setWidth("70%");
+		outerHp.setHeight("100%");
 		VerticalPanel outerVp = new VerticalPanel();
 		outerVp.setSpacing(0);
 		
@@ -109,21 +110,12 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		dp = new DecoratorPanel();
 		dp.setWidth("100%");
 		
-		VerticalPanel temp = new VerticalPanel();
-		temp.setWidth("100%");
-		temp.add(new HTML ("!!"));
 		RichTextArea contents = new RichTextArea();
-		contents.setWidth("100%");
-		temp.add(contents);
+		TextBox tempTitle = new TextBox();
 		
-		VerticalPanel temp2 = new VerticalPanel();
-		temp2.add(new HTML ("2"));
-		RichTextArea contents2 = new RichTextArea();
-		contents2.setWidth("100%");
-		temp2.add(contents2);
+		this.initTabPanel();
+
 		
-		tp.add(temp, "??");
-	    tp.add(temp2, "2");
 	    tp.selectTab(0);
 		hp = new HorizontalPanel();
 		
@@ -173,6 +165,17 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		saveButton.setEnabled(false);
 		title.setEnabled(false);
 		contents.setEnabled(false);
+	}
+	
+	private void initTabPanel(){
+		tp.add(new HTML("No documents open yet! <br>" +
+				"Select a document on the left, " +
+				"or create a new document to begin! <br>"), "Welcome!");
+	}
+	
+	private void addNewTab(RichTextArea contents, TextBox title){
+		contents.setWidth("100%");
+		tp.add(contents, title);
 	}
 	
 	/**
@@ -248,6 +251,9 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 			History.newItem("list");
 			lister.getDocumentList();
 		} else if (event.getSource().equals(createNew)) {
+			RichTextArea contents = new RichTextArea();
+			TextBox tempTitle = new TextBox();
+			addNewTab(contents, tempTitle);
 			createNewDocument();
 		} else if (event.getSource().equals(refreshDoc)) {
 			if (readOnlyDoc != null) {
