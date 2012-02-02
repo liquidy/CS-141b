@@ -269,11 +269,8 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	@Override
 	public void onClick(ClickEvent event) {
 		if (event.getSource().equals(refreshList)) {
-			// save the tabpanel first
-			TabBar curr = tb;
 			History.newItem("list");
 			lister.getDocumentList();
-			tb = curr;
 		} else if (event.getSource().equals(createNew)) {
 			contents = new RichTextArea();
 			title = new TextBox();
@@ -286,7 +283,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 			}
 		} else if (event.getSource().equals(lockButton)) {
 			if (readOnlyDoc != null) {
-				//get the lock of the currently opened tab
+				//get the lock of the currently opened tab 
 				locker.lockDocument(openTabKeys.get(tb.getSelectedTab()));
 				//locker.lockDocument(readOnlyDoc.getKey());
 			}
@@ -297,6 +294,9 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 					statusUpdate("No document changes; not saving.");
 				}
 				else {
+					if (!openTabKeys.contains(lockedDoc.getKey())){
+						openTabKeys.add(lockedDoc.getKey());
+					}
 					lockedDoc.setTitle(title.getValue());
 					lockedDoc.setContents(contents.getHTML());
 					saver.saveDocument(lockedDoc);
