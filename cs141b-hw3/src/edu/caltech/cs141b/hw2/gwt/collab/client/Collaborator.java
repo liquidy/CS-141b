@@ -269,8 +269,11 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	@Override
 	public void onClick(ClickEvent event) {
 		if (event.getSource().equals(refreshList)) {
+			// save the tabpanel first
+			TabBar curr = tb;
 			History.newItem("list");
 			lister.getDocumentList();
+			tb = curr;
 		} else if (event.getSource().equals(createNew)) {
 			contents = new RichTextArea();
 			title = new TextBox();
@@ -318,9 +321,19 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	public void onChange(ChangeEvent event) {
 		if (event.getSource().equals(documentList)) {
 			String key = documentList.getValue(documentList.getSelectedIndex());
-			discardExisting(key);
+			// if it's already open in a tab, save the location of the tab
+			int savedLoc = 0;
+			boolean wasOpen = false;
 			if (openTabKeys.contains(key)){
-				tp.selectTab(openTabKeys.indexOf(key));
+				savedLoc = openTabKeys.indexOf(key);
+				tp.selectTab(savedLoc);
+				openTabKeys.remove(savedLoc);
+				wasOpen = true;
+			}
+			discardExisting(key);
+			if (wasOpen){
+				openTabKeys.add(savedLoc, key);
+				tp.selectTab(savedLoc);
 			} else {
 				openTabKeys.add(key);
 				contents = new RichTextArea();
@@ -328,6 +341,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 				addNewTab(contents, title);
 				reader.getDocument(key);
 			}
+
 		}
 	}
 	
