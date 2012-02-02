@@ -1,6 +1,7 @@
 package edu.caltech.cs141b.hw2.gwt.collab.client;
 
 import com.google.gwt.event.dom.client.ChangeEvent;
+import java.util.ArrayList;
 
 import com.google.gwt.user.client.ui.TabBar;
 import com.google.gwt.event.dom.client.ChangeHandler;
@@ -61,6 +62,9 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	private TabPanel tp = new TabPanel();
 	private TabBar tb = tp.getTabBar();
 	
+	//current tabs
+	private ArrayList<String> openTabKeys= new ArrayList<String>();
+	
 	/**
 	 * UI initialization.
 	 * 
@@ -119,10 +123,11 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		RichTextArea contents = new RichTextArea();
 		TextBox tempTitle = new TextBox();
 		
-		this.initTabPanel();
+		// Taking this out for now..
+		//this.initTabPanel();
 
 		
-	    tp.selectTab(0);
+	   // tp.selectTab(0);
 		hp = new HorizontalPanel();
 		
 		hp.setSpacing(10);
@@ -273,11 +278,14 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 			addNewTab(contents, title);
 		} else if (event.getSource().equals(refreshDoc)) {
 			if (readOnlyDoc != null) {
-				reader.getDocument(readOnlyDoc.getKey());
+				//reader.getDocument(readOnlyDoc.getKey());
+				reader.getDocument(openTabKeys.get(tb.getSelectedTab()));
 			}
 		} else if (event.getSource().equals(lockButton)) {
 			if (readOnlyDoc != null) {
-				locker.lockDocument(readOnlyDoc.getKey());
+				//get the lock of the currently opened tab
+				locker.lockDocument(openTabKeys.get(tb.getSelectedTab()));
+				//locker.lockDocument(readOnlyDoc.getKey());
 			}
 		} else if (event.getSource().equals(saveButton)) {
 			if (lockedDoc != null) {
@@ -294,9 +302,10 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		}  else if (event.getSource().equals(closeButton)){
 			int removedTab = tb.getSelectedTab();
 			tp.remove(removedTab);
-			// select which tab next?
+			openTabKeys.remove(removedTab);
+			// select which tab next? Default to first
 			if (tb.getTabCount() >= 1){
-				tb.selectTab(0);
+				tp.selectTab(0);
 			}
 		}
 	}
@@ -310,7 +319,15 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		if (event.getSource().equals(documentList)) {
 			String key = documentList.getValue(documentList.getSelectedIndex());
 			discardExisting(key);
-			reader.getDocument(key);
+			if (openTabKeys.contains(key)){
+				tp.selectTab(openTabKeys.indexOf(key));
+			} else {
+				openTabKeys.add(key);
+				contents = new RichTextArea();
+				title = new TextBox();
+				addNewTab(contents, title);
+				reader.getDocument(key);
+			}
 		}
 	}
 	
