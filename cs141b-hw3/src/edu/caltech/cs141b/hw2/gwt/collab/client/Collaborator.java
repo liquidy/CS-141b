@@ -1,6 +1,8 @@
 package edu.caltech.cs141b.hw2.gwt.collab.client;
 
 import com.google.gwt.event.dom.client.ChangeEvent;
+
+import com.google.gwt.user.client.ui.TabBar;
 import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
@@ -42,6 +44,9 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	protected Button lockButton = new Button("Get Document Lock");
 	protected Button saveButton = new Button("Save Document");
 	
+	//annie's attempt at a close
+	protected Button closeButton = new Button("Close Current");
+	
 	// Callback objects.
 	protected DocLister lister = new DocLister(this);
 	protected DocReader reader = new DocReader(this);
@@ -54,6 +59,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	private VerticalPanel statusArea = new VerticalPanel();
 	
 	private TabPanel tp = new TabPanel();
+	private TabBar tb = tp.getTabBar();
 	
 	/**
 	 * UI initialization.
@@ -123,6 +129,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		hp.add(refreshDoc);
 		hp.add(lockButton);
 		hp.add(saveButton);
+		hp.add(closeButton);
 
 		tp.setWidth("100%");
 		outerVp.add(hp);
@@ -143,6 +150,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		refreshDoc.addClickHandler(this);
 		lockButton.addClickHandler(this);
 		saveButton.addClickHandler(this);
+		closeButton.addClickHandler(this);
 		
 		documentList.addChangeHandler(this);
 		documentList.setVisibleItemCount(10);
@@ -165,6 +173,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		saveButton.setEnabled(false);
 		title.setEnabled(false);
 		contents.setEnabled(false);
+		closeButton.setEnabled(true);
 	}
 	
 	private void initTabPanel(){
@@ -175,7 +184,14 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	
 	private void addNewTab(RichTextArea contents, TextBox title){
 		contents.setWidth("100%");
-		tp.add(contents, title);
+		HorizontalPanel tabHeader = new HorizontalPanel();
+		tabHeader.add(title);
+
+		//tabHeader.add(closeButton);
+		tp.add(contents, tabHeader);
+		//closeButton.addClickHandler(this);
+		// open the new tab
+		tp.selectTab(tp.getTabBar().getTabCount()-1);
 	}
 	
 	/**
@@ -251,10 +267,10 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 			History.newItem("list");
 			lister.getDocumentList();
 		} else if (event.getSource().equals(createNew)) {
-			RichTextArea contents = new RichTextArea();
-			TextBox tempTitle = new TextBox();
-			addNewTab(contents, tempTitle);
+			contents = new RichTextArea();
+			title = new TextBox();
 			createNewDocument();
+			addNewTab(contents, title);
 		} else if (event.getSource().equals(refreshDoc)) {
 			if (readOnlyDoc != null) {
 				reader.getDocument(readOnlyDoc.getKey());
@@ -274,6 +290,13 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 					lockedDoc.setContents(contents.getHTML());
 					saver.saveDocument(lockedDoc);
 				}
+			}
+		}  else if (event.getSource().equals(closeButton)){
+			int removedTab = tb.getSelectedTab();
+			tp.remove(removedTab);
+			// select which tab next?
+			if (tb.getTabCount() >= 1){
+				tb.selectTab(0);
 			}
 		}
 	}
