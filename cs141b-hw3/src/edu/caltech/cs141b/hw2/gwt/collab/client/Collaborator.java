@@ -27,6 +27,8 @@ import edu.caltech.cs141b.hw2.gwt.collab.shared.UnlockedDocument;
  */
 public class Collaborator extends Composite implements ClickHandler, ChangeHandler {
 	
+	public static final boolean DEBUG = true;
+	
 	protected CollaboratorServiceAsync collabService;
 	
 	// Track document information.
@@ -72,83 +74,75 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	 */
 	public Collaborator(CollaboratorServiceAsync collabService) {
 		this.collabService = collabService;
+		
+		// outerHp is our horizontal panel that includes the majority of the page.
 		HorizontalPanel outerHp = new HorizontalPanel();
 		outerHp.setWidth("70%");
 		outerHp.setHeight("100%");
-		VerticalPanel outerVp = new VerticalPanel();
-		outerVp.setSpacing(0);
 		
-		VerticalPanel vp = new VerticalPanel();
-		vp.setSpacing(10);
-		vp.add(new HTML("<h2>Available Documents</h2>"));
+		// leftColVp holds our document list and console.
+		VerticalPanel leftColVp = new VerticalPanel();
+		leftColVp.setSpacing(0);
+		
+		// docsVp holds document list and relevant buttons (refresh / create new).
+		VerticalPanel docsVp = new VerticalPanel();
+		docsVp.setSpacing(10);
+		docsVp.add(new HTML("<h2>Available Documents</h2>"));
 		documentList.setWidth("100%");
-		vp.add(documentList);
-		HorizontalPanel hp = new HorizontalPanel();
-		hp.setSpacing(10);
-		hp.add(refreshList);
-		hp.add(createNew);
-		vp.add(hp);
+		docsVp.add(documentList);
+		
+		// docsButtonsHp holds relevant buttons (refresh / create new).
+		HorizontalPanel docsButtonsHp = new HorizontalPanel();
+		docsButtonsHp.setSpacing(10);
+		docsButtonsHp.add(refreshList);
+		docsButtonsHp.add(createNew);
+		docsVp.add(docsButtonsHp);
 		DecoratorPanel dp = new DecoratorPanel();
 		dp.setWidth("100%");
-		vp.setHeight("100%");
+		docsVp.setHeight("100%");
 		dp.setHeight("100%");
-		dp.add(vp);
-		outerVp.add(dp);
-	/*	
-		vp = new VerticalPanel();
-		vp.setSpacing(10);
-		vp.add(new HTML("<h2>Selected Document</h2>"));
-		title.setWidth("100%");
-		vp.add(title);
-		contents.setWidth("100%");
-		vp.add(contents);
-		hp = new HorizontalPanel();
-		hp.setSpacing(10);
-		hp.add(refreshDoc);
-		hp.add(lockButton);
-		hp.add(saveButton);
-		vp.add(hp);
-		dp = new DecoratorPanel();
-		dp.setWidth("100%");
-		dp.add(vp);
-		outerVp.add(dp);
-	*/	
-		outerHp.add(outerVp);
+		dp.add(docsVp);
+		leftColVp.add(dp);
 		
-		outerVp = new VerticalPanel();
-		outerVp.setSpacing(20);
-		dp = new DecoratorPanel();
-		dp.setWidth("100%");
+		// Add console to leftColVp.
+		if (DEBUG) {
+				dp = new DecoratorPanel();
+				dp.setWidth("100%");
+				statusArea.setSpacing(10);
+				statusArea.add(new HTML("<h2>Console</h2>"));
+				dp.add(statusArea);
+				leftColVp.add(statusArea);
+		}
 		
-		RichTextArea contents = new RichTextArea();
-		TextBox tempTitle = new TextBox();
+		// We are done packing leftColVp, so add it to outerHp.
+		outerHp.add(leftColVp);
 		
-		// Taking this out for now..
-		//this.initTabPanel();
+		// Now let's work on the right side of the page, which will include
+		// the tabPanel for documents (as well as some relevant buttons)
+		VerticalPanel rightColVp = new VerticalPanel();
+		rightColVp.setSpacing(20);
 
-		
-	   // tp.selectTab(0);
-		hp = new HorizontalPanel();
-		
+		// Create horizontal panel that holds the document-specific buttons.
+		HorizontalPanel hp = new HorizontalPanel();
 		hp.setSpacing(10);
 		hp.add(refreshDoc);
 		hp.add(lockButton);
 		hp.add(saveButton);
 		hp.add(closeButton);
-
+		rightColVp.add(hp);
+		
+		// Add tab panel to rightColVp.
 		tp.setWidth("100%");
-		outerVp.add(hp);
-		//dp.add(tp);
-		//outerVp.add(dp);
-		outerVp.add(hp);
-		outerVp.add(tp);
-		outerVp.setWidth("100%");
-		outerVp.setHeight("100%");
+		rightColVp.add(tp);
+		rightColVp.setWidth("100%");
+		rightColVp.setHeight("100%");
+		
+		// Add rightColVp to outerHp.
+		dp = new DecoratorPanel();
 		dp.setWidth("100%");
 		dp.setHeight("100%");
-		dp.add(outerVp);
+		dp.add(rightColVp);
 		outerHp.add(dp);
-		//outerHp.add(outerVp);
 		
 		refreshList.addClickHandler(this);
 		createNew.addClickHandler(this);
@@ -181,22 +175,16 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		closeButton.setEnabled(true);
 	}
 	
-	private void initTabPanel(){
-		tp.add(new HTML("No documents open yet! <br>" +
-				"Select a document on the left, " +
-				"or create a new document to begin! <br>"), "Welcome!");
-	}
-	
 	private void addNewTab(RichTextArea contents, TextBox title){
 		contents.setWidth("100%");
+		
+		// Add a new tab with contents and title.
 		HorizontalPanel tabHeader = new HorizontalPanel();
 		tabHeader.add(title);
-
-		//tabHeader.add(closeButton);
 		tp.add(contents, tabHeader);
-		//closeButton.addClickHandler(this);
-		// open the new tab
-		tp.selectTab(tp.getTabBar().getTabCount()-1);
+		
+		// Select the last tab for the user.
+		tp.selectTab(tp.getTabBar().getTabCount() - 1);
 	}
 	
 	/**
@@ -255,7 +243,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	 * @param status the status to add to the console window
 	 */
 	protected void statusUpdate(String status) {
-		while (statusArea.getWidgetCount() > 22) {
+		while (statusArea.getWidgetCount() > 10) {
 			statusArea.remove(1);
 		}
 		final HTML statusUpd = new HTML(status);
@@ -278,14 +266,11 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 			addNewTab(contents, title);
 		} else if (event.getSource().equals(refreshDoc)) {
 			if (readOnlyDoc != null) {
-				//reader.getDocument(readOnlyDoc.getKey());
 				reader.getDocument(openTabKeys.get(tb.getSelectedTab()));
 			}
 		} else if (event.getSource().equals(lockButton)) {
 			if (readOnlyDoc != null) {
-				//get the lock of the currently opened tab 
 				locker.lockDocument(openTabKeys.get(tb.getSelectedTab()));
-				//locker.lockDocument(readOnlyDoc.getKey());
 			}
 		} else if (event.getSource().equals(saveButton)) {
 			if (lockedDoc != null) {
@@ -294,7 +279,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 					statusUpdate("No document changes; not saving.");
 				}
 				else {
-					if (!openTabKeys.contains(lockedDoc.getKey())){
+					if (!openTabKeys.contains(lockedDoc.getKey())) {
 						openTabKeys.add(lockedDoc.getKey());
 					}
 					lockedDoc.setTitle(title.getValue());
@@ -302,12 +287,11 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 					saver.saveDocument(lockedDoc);
 				}
 			}
-		}  else if (event.getSource().equals(closeButton)){
+		} else if (event.getSource().equals(closeButton)) {
 			int removedTab = tb.getSelectedTab();
 			tp.remove(removedTab);
 			openTabKeys.remove(removedTab);
-			// select which tab next? Default to first
-			if (tb.getTabCount() >= 1){
+			if (tb.getTabCount() >= 1) {
 				tp.selectTab(0);
 			}
 		}
