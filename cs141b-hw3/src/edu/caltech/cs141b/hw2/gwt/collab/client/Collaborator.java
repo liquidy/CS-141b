@@ -66,6 +66,10 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	
 	//current tabs
 	private ArrayList<String> openTabKeys= new ArrayList<String>();
+	//the title and contents for each of the tabs, indexed just like
+	// openTabKeys
+	private ArrayList<RichTextArea> tabContents = new ArrayList<RichTextArea>();
+	private ArrayList<TextBox> tabTitles = new ArrayList<TextBox>();
 	
 	/**
 	 * UI initialization.
@@ -226,8 +230,8 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		if (args.equals("list")) {
 			readOnlyDoc = null;
 			lockedDoc = null;
-			title.setValue("");
-			contents.setHTML("");
+			//title.setValue("");
+			//contents.setHTML("");
 			setDefaultButtons();
 		} else if (args.equals("new")) {
 			createNewDocument();
@@ -267,9 +271,13 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		} else if (event.getSource().equals(refreshDoc)) {
 			if (readOnlyDoc != null) {
 				reader.getDocument(openTabKeys.get(tb.getSelectedTab()));
+				title = tabTitles.get(tb.getSelectedTab());
+				contents = tabContents.get(tb.getSelectedTab());
 			}
 		} else if (event.getSource().equals(lockButton)) {
 			if (readOnlyDoc != null) {
+				title = tabTitles.get(tb.getSelectedTab());
+				contents = tabContents.get(tb.getSelectedTab());
 				locker.lockDocument(openTabKeys.get(tb.getSelectedTab()));
 			}
 		} else if (event.getSource().equals(saveButton)) {
@@ -281,6 +289,8 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 				else {
 					if (!openTabKeys.contains(lockedDoc.getKey())) {
 						openTabKeys.add(lockedDoc.getKey());
+						tabTitles.add(title);
+						tabContents.add(contents);
 					}
 					lockedDoc.setTitle(title.getValue());
 					lockedDoc.setContents(contents.getHTML());
@@ -291,6 +301,8 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 			int removedTab = tb.getSelectedTab();
 			tp.remove(removedTab);
 			openTabKeys.remove(removedTab);
+			tabTitles.remove(removedTab);
+			tabContents.remove(removedTab);
 			if (tb.getTabCount() >= 1) {
 				tp.selectTab(0);
 			}
@@ -306,6 +318,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		if (event.getSource().equals(documentList)) {
 			String key = documentList.getValue(documentList.getSelectedIndex());
 			// if it's already open in a tab, save the location of the tab
+			// and retrieve the title and contents from that one
 			int savedLoc = 0;
 			boolean wasOpen = false;
 			if (openTabKeys.contains(key)){
@@ -313,6 +326,8 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 				tp.selectTab(savedLoc);
 				openTabKeys.remove(savedLoc);
 				wasOpen = true;
+				title = tabTitles.get(savedLoc);
+				contents = tabContents.get(savedLoc);
 			}
 			discardExisting(key);
 			if (wasOpen){
@@ -323,6 +338,8 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 				contents = new RichTextArea();
 				title = new TextBox();
 				addNewTab(contents, title);
+				tabTitles.add(title);
+				tabContents.add(contents);
 				reader.getDocument(key);
 			}
 
