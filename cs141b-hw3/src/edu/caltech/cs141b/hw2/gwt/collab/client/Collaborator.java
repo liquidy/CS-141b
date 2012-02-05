@@ -7,6 +7,8 @@ import com.google.gwt.user.client.ui.TabBar;
 import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.event.logical.shared.SelectionEvent;
+import com.google.gwt.event.logical.shared.SelectionHandler;
 import com.google.gwt.user.client.History;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
@@ -147,6 +149,15 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		dp.setHeight("100%");
 		dp.add(rightColVp);
 		outerHp.add(dp);
+		
+		/* attempt to do it with a selection handler doesn't work 
+		tp.addSelectionHandler(new SelectionHandler(){
+			public void onSelection(SelectionEvent event){
+				title = tabTitles.get((Integer) event.getSelectedItem());
+				contents = tabContents.get((Integer) event.getSelectedItem());
+			}
+		});
+		*/
 		
 		refreshList.addClickHandler(this);
 		createNew.addClickHandler(this);
