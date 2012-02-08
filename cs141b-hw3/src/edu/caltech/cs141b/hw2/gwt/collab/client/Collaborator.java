@@ -7,12 +7,9 @@ import com.google.gwt.user.client.ui.TabBar;
 import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
-import com.google.gwt.event.logical.shared.SelectionEvent;
-import com.google.gwt.event.logical.shared.SelectionHandler;
 import com.google.gwt.user.client.History;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
-import com.google.gwt.user.client.ui.DecoratorPanel;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.ListBox;
@@ -83,7 +80,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		
 		// outerHp is our horizontal panel that includes the majority of the page.
 		HorizontalPanel outerHp = new HorizontalPanel();
-		outerHp.setWidth("70%");
+		outerHp.setWidth("100%");
 		outerHp.setHeight("100%");
 		
 		// leftColVp holds our document list and console.
@@ -103,20 +100,13 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		docsButtonsHp.add(refreshList);
 		docsButtonsHp.add(createNew);
 		docsVp.add(docsButtonsHp);
-		DecoratorPanel dp = new DecoratorPanel();
-		dp.setWidth("100%");
 		docsVp.setHeight("100%");
-		dp.setHeight("100%");
-		dp.add(docsVp);
-		leftColVp.add(dp);
+		leftColVp.add(docsVp);
 		
 		// Add console to leftColVp.
 		if (DEBUG) {
-				dp = new DecoratorPanel();
-				dp.setWidth("100%");
 				statusArea.setSpacing(10);
 				statusArea.add(new HTML("<h2>Console</h2>"));
-				dp.add(statusArea);
 				leftColVp.add(statusArea);
 		}
 		
@@ -143,21 +133,15 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		rightColVp.setWidth("100%");
 		rightColVp.setHeight("100%");
 		
-		// Add rightColVp to outerHp.
-		dp = new DecoratorPanel();
-		dp.setWidth("100%");
-		dp.setHeight("100%");
-		dp.add(rightColVp);
-		outerHp.add(dp);
+		outerHp.add(rightColVp);
 		
-		/* attempt to do it with a selection handler doesn't work 
-		tp.addSelectionHandler(new SelectionHandler(){
-			public void onSelection(SelectionEvent event){
-				title = tabTitles.get((Integer) event.getSelectedItem());
-				contents = tabContents.get((Integer) event.getSelectedItem());
-			}
-		});
-		*/
+//		tp.addSelectionHandler(new SelectionHandler<Integer>() {
+//			public void onSelection(SelectionEvent<Integer> event) {
+//				title = tabTitles.get(event.getSelectedItem());
+//				contents = tabContents.get(event.getSelectedItem());
+//			}
+//		});
+	
 		
 		refreshList.addClickHandler(this);
 		createNew.addClickHandler(this);
