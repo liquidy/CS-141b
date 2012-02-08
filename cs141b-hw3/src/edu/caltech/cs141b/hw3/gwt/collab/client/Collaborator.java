@@ -1,4 +1,4 @@
-package edu.caltech.cs141b.hw2.gwt.collab.client;
+package edu.caltech.cs141b.hw3.gwt.collab.client;
 
 import com.google.gwt.event.dom.client.ChangeEvent;
 import java.util.ArrayList;
@@ -18,8 +18,8 @@ import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.TabPanel;
 
-import edu.caltech.cs141b.hw2.gwt.collab.shared.LockedDocument;
-import edu.caltech.cs141b.hw2.gwt.collab.shared.UnlockedDocument;
+import edu.caltech.cs141b.hw3.gwt.collab.shared.LockedDocument;
+import edu.caltech.cs141b.hw3.gwt.collab.shared.UnlockedDocument;
 
 /**
  * Main class for a single Collaborator widget.

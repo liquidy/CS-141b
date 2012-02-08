@@ -1,4 +1,4 @@
-package edu.caltech.cs141b.hw2.gwt.collab.server;
+package edu.caltech.cs141b.hw3.gwt.collab.server;
 
 import java.util.Date;
 
