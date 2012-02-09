@@ -19,34 +19,36 @@ public class DocLocker implements AsyncCallback<LockedDocument> {
 	
 	public void lockDocument(String key) {
 		collaborator.statusUpdate("Attempting to lock document.");
-		collaborator.waitingKey = key;
+		collaborator.updateVarsAndUi(key, UiState.LOCKING);
 		collaborator.collabService.lockDocument(key, this);
-		collaborator.lockButton.setEnabled(false);
 	}
 
 	@Override
 	public void onFailure(Throwable caught) {
 		if (caught instanceof LockUnavailable) {
-			collaborator.statusUpdate("LockUnavailable: " + caught.getMessage());
+			LockUnavailable caughtEx = ((LockUnavailable) caught);
+			if (caughtEx.getWrongCredentials()) {
+				collaborator.statusUpdate("Lock is available, but you have the" +
+						"wrong credentials; save failed. It's locked by: " + 
+						caughtEx.getCredentials());
+			} else {
+				collaborator.statusUpdate("Lock is unavailable; save failed. " +
+						"It's locked until " + caughtEx.getLockedUntil());
+			}
+			collaborator.updateVarsAndUi(caughtEx.getKey(), UiState.VIEWING);
 		} else {
 			collaborator.statusUpdate("Error retrieving lock"
 					+ "; caught exception " + caught.getClass()
 					+ " with message: " + caught.getMessage());
 			GWT.log("Error getting document lock.", caught);
 		}
-		collaborator.lockButton.setEnabled(true);
+		
 	}
 
 	@Override
 	public void onSuccess(LockedDocument result) {
-		if (result.getKey().equals(collaborator.waitingKey)) {
-			collaborator.statusUpdate("Lock retrieved for document.");
-			gotDoc(result);
-		} else {
-			collaborator.statusUpdate("Got lock for document which is "
-					+ "no longer active.  Releasing lock.");
-			collaborator.releaser.releaseLock(result);
-		}
+		collaborator.statusUpdate("Lock retrieved for document.");
+		gotDoc(result);
 	}
 	
 	/**
@@ -57,15 +59,10 @@ public class DocLocker implements AsyncCallback<LockedDocument> {
 	 * @param result
 	 */
 	protected void gotDoc(LockedDocument result) {
-		collaborator.readOnlyDoc = null;
-		collaborator.lockedDoc = result;
-		collaborator.title.setValue(result.getTitle());
-		collaborator.title.setEnabled(true);
-		collaborator.contents.setHTML(result.getContents());
-		collaborator.contents.setEnabled(true);
-		collaborator.refreshDoc.setEnabled(false);
-		collaborator.lockButton.setEnabled(false);
-		collaborator.saveButton.setEnabled(true);
+		collaborator.updateVarsAndUi(result.getKey(),
+				result.getTitle(),
+				result.getContents(),
+				UiState.LOCKED);
 	}
 	
 }

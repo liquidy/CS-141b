@@ -9,10 +9,8 @@ import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.event.logical.shared.SelectionEvent;
 import com.google.gwt.event.logical.shared.SelectionHandler;
-import com.google.gwt.user.client.History;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
-import com.google.gwt.user.client.ui.DecoratorPanel;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.ListBox;
@@ -22,7 +20,6 @@ import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.TabPanel;
 
 import edu.caltech.cs141b.hw2.gwt.collab.shared.LockedDocument;
-import edu.caltech.cs141b.hw2.gwt.collab.shared.UnlockedDocument;
 
 /**
  * Main class for a single Collaborator widget.
@@ -33,14 +30,10 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	
 	protected CollaboratorServiceAsync collabService;
 	
-	// Track document information.
-	protected UnlockedDocument readOnlyDoc = null;
-	protected LockedDocument lockedDoc = null;
-	
 	// Managing available documents.
 	protected ListBox documentList = new ListBox();
-	private Button refreshList = new Button("Refresh Document List");
-	private Button createNew = new Button("Create New Document");
+	protected Button refreshList = new Button("Refresh Document List");
+	protected Button createNew = new Button("Create New Document");
 	
 	// For displaying document information and editing document content.
 	protected TextBox title = new TextBox();
@@ -48,8 +41,6 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	protected Button refreshDoc = new Button("Refresh Document");
 	protected Button lockButton = new Button("Get Document Lock");
 	protected Button saveButton = new Button("Save Document");
-	
-	//annie's attempt at a close
 	protected Button closeButton = new Button("Close Current");
 	
 	// Callback objects.
@@ -58,7 +49,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	private DocLocker locker = new DocLocker(this);
 	protected DocReleaser releaser = new DocReleaser(this);
 	private DocSaver saver = new DocSaver(this);
-	protected String waitingKey = null;
+	private DocCreator creator = new DocCreator(this);
 	
 	// Status tracking.
 	private VerticalPanel statusArea = new VerticalPanel();
@@ -66,12 +57,12 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	private TabPanel tp = new TabPanel();
 	private TabBar tb = tp.getTabBar();
 	
-	//current tabs
-	private ArrayList<String> openTabKeys= new ArrayList<String>();
-	//the title and contents for each of the tabs, indexed just like
-	// openTabKeys
-	private ArrayList<RichTextArea> tabContents = new ArrayList<RichTextArea>();
-	private ArrayList<TextBox> tabTitles = new ArrayList<TextBox>();
+	// Variables for keeping track of current states of the application.
+	protected int currentTabInd = 0;
+	protected ArrayList<String> tabKeys = new ArrayList<String>();
+	protected ArrayList<RichTextArea> tabContents = new ArrayList<RichTextArea>();
+	protected ArrayList<TextBox> tabTitles = new ArrayList<TextBox>();
+	protected ArrayList<UiState> uiStates = new ArrayList<UiState>();
 	
 	/**
 	 * UI initialization.
@@ -83,7 +74,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		
 		// outerHp is our horizontal panel that includes the majority of the page.
 		HorizontalPanel outerHp = new HorizontalPanel();
-		outerHp.setWidth("70%");
+		outerHp.setWidth("100%");
 		outerHp.setHeight("100%");
 		
 		// leftColVp holds our document list and console.
@@ -103,20 +94,13 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		docsButtonsHp.add(refreshList);
 		docsButtonsHp.add(createNew);
 		docsVp.add(docsButtonsHp);
-		DecoratorPanel dp = new DecoratorPanel();
-		dp.setWidth("100%");
 		docsVp.setHeight("100%");
-		dp.setHeight("100%");
-		dp.add(docsVp);
-		leftColVp.add(dp);
+		leftColVp.add(docsVp);
 		
 		// Add console to leftColVp.
 		if (DEBUG) {
-				dp = new DecoratorPanel();
-				dp.setWidth("100%");
 				statusArea.setSpacing(10);
 				statusArea.add(new HTML("<h2>Console</h2>"));
-				dp.add(statusArea);
 				leftColVp.add(statusArea);
 		}
 		
@@ -143,21 +127,22 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		rightColVp.setWidth("100%");
 		rightColVp.setHeight("100%");
 		
-		// Add rightColVp to outerHp.
-		dp = new DecoratorPanel();
-		dp.setWidth("100%");
-		dp.setHeight("100%");
-		dp.add(rightColVp);
-		outerHp.add(dp);
+		outerHp.add(rightColVp);
 		
-		/* attempt to do it with a selection handler doesn't work 
-		tp.addSelectionHandler(new SelectionHandler(){
-			public void onSelection(SelectionEvent event){
-				title = tabTitles.get((Integer) event.getSelectedItem());
-				contents = tabContents.get((Integer) event.getSelectedItem());
+		// Handlers code starts here:
+		
+		// Adding selection handler to tab panel. Note that tabTitles
+		// and tabContents should be updated before the tab selection occurs.
+		tp.addSelectionHandler(new SelectionHandler<Integer>() {
+			public void onSelection(SelectionEvent<Integer> event) {
+				// Changes UI to update to the current selected tab.
+				int currentIndex = event.getSelectedItem();
+				currentTabInd = currentIndex;
+				title = tabTitles.get(currentIndex);
+				contents = tabContents.get(currentIndex);
+				setUiToState(uiStates.get(currentIndex));
 			}
 		});
-		*/
 		
 		refreshList.addClickHandler(this);
 		createNew.addClickHandler(this);
@@ -169,102 +154,12 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		documentList.addChangeHandler(this);
 		documentList.setVisibleItemCount(10);
 		
-		setDefaultButtons();
+		setUiToState(UiState.NOT_VIEWING);
 		initWidget(outerHp);
 		
 		lister.getDocumentList();
 	}
 	
-	/**
-	 * Resets the state of the buttons and edit objects to their default.
-	 * 
-	 * The state of these objects is modified by requesting or obtaining locks
-	 * and trying to or successfully saving.
-	 */
-	protected void setDefaultButtons() {
-		refreshDoc.setEnabled(true);
-		lockButton.setEnabled(true);
-		saveButton.setEnabled(false);
-		title.setEnabled(false);
-		contents.setEnabled(false);
-		closeButton.setEnabled(true);
-	}
-	
-	private void addNewTab(RichTextArea contents, TextBox title){
-		contents.setWidth("100%");
-		
-		// Add a new tab with contents and title.
-		HorizontalPanel tabHeader = new HorizontalPanel();
-		tabHeader.add(title);
-		tp.add(contents, tabHeader);
-		
-		// Select the last tab for the user.
-		tp.selectTab(tp.getTabBar().getTabCount() - 1);
-	}
-	
-	/**
-	 * Behaves similarly to locking a document, except without a key/lock obj.
-	 */
-	private void createNewDocument() {
-		discardExisting(null);
-		lockedDoc = new LockedDocument(null, null, null,
-				"Enter the document title.",
-				"Enter the document contents.");
-		locker.gotDoc(lockedDoc);
-		History.newItem("new");
-	}
-	
-	/**
-	 * Returns the currently active token.
-	 * 
-	 * @return history token which describes the current state
-	 */
-	protected String getToken() {
-		if (lockedDoc != null) {
-			if (lockedDoc.getKey() == null) {
-				return "new";
-			}
-			return lockedDoc.getKey();
-		} else if (readOnlyDoc != null) {
-			return readOnlyDoc.getKey();
-		} else {
-			return "list";
-		}
-	}
-	
-	/**
-	 * Modifies the current state to reflect the supplied token.
-	 * 
-	 * @param args history token received
-	 */
-	protected void receiveArgs(String args) {
-		if (args.equals("list")) {
-			readOnlyDoc = null;
-			lockedDoc = null;
-			//title.setValue("");
-			//contents.setHTML("");
-			setDefaultButtons();
-		} else if (args.equals("new")) {
-			createNewDocument();
-		} else {
-			reader.getDocument(args);
-		}
-	}
-	
-	/**
-	 * Adds status lines to the console window to enable transparency of the
-	 * underlying processes.
-	 * 
-	 * @param status the status to add to the console window
-	 */
-	protected void statusUpdate(String status) {
-		while (statusArea.getWidgetCount() > 10) {
-			statusArea.remove(1);
-		}
-		final HTML statusUpd = new HTML(status);
-		statusArea.add(statusUpd);
-	}
-
 	/* (non-Javadoc)
 	 * Receives button events.
 	 * @see com.google.gwt.event.dom.client.ClickHandler#onClick(com.google.gwt.event.dom.client.ClickEvent)
@@ -272,50 +167,43 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	@Override
 	public void onClick(ClickEvent event) {
 		if (event.getSource().equals(refreshList)) {
-			History.newItem("list");
 			lister.getDocumentList();
 		} else if (event.getSource().equals(createNew)) {
-			contents = new RichTextArea();
-			title = new TextBox();
-			createNewDocument();
-			addNewTab(contents, title);
+			creator.createDocument();
 		} else if (event.getSource().equals(refreshDoc)) {
-			if (readOnlyDoc != null) {
-				reader.getDocument(openTabKeys.get(tb.getSelectedTab()));
-				title = tabTitles.get(tb.getSelectedTab());
-				contents = tabContents.get(tb.getSelectedTab());
+			if (currentKeyIsSet()) {
+				reader.getDocument(tabKeys.get(tb.getSelectedTab()));
 			}
 		} else if (event.getSource().equals(lockButton)) {
-			if (readOnlyDoc != null) {
-				title = tabTitles.get(tb.getSelectedTab());
-				contents = tabContents.get(tb.getSelectedTab());
-				locker.lockDocument(openTabKeys.get(tb.getSelectedTab()));
+			if (currentKeyIsSet()) {
+				locker.lockDocument(tabKeys.get(tb.getSelectedTab()));
 			}
 		} else if (event.getSource().equals(saveButton)) {
-			if (lockedDoc != null) {
-				if (lockedDoc.getTitle().equals(title.getValue()) &&
-						lockedDoc.getContents().equals(contents.getHTML())) {
-					statusUpdate("No document changes; not saving.");
-				}
-				else {
-					if (!openTabKeys.contains(lockedDoc.getKey())) {
-						openTabKeys.add(lockedDoc.getKey());
-						tabTitles.add(title);
-						tabContents.add(contents);
-					}
-					lockedDoc.setTitle(title.getValue());
-					lockedDoc.setContents(contents.getHTML());
-					saver.saveDocument(lockedDoc);
-				}
+			if (currentKeyIsSet()) {
+				// Update data structures
+				tabTitles.set(currentTabInd, title);
+				tabContents.set(currentTabInd, contents);
+				// Make async call to save the document (also updates UI).
+				LockedDocument lockedDoc = new LockedDocument(null, null,
+						tabKeys.get(currentTabInd), title.getValue(), 
+						contents.getHTML());
+				saver.saveDocument(lockedDoc);
 			}
 		} else if (event.getSource().equals(closeButton)) {
-			int removedTab = tb.getSelectedTab();
-			tp.remove(removedTab);
-			openTabKeys.remove(removedTab);
-			tabTitles.remove(removedTab);
-			tabContents.remove(removedTab);
-			if (tb.getTabCount() >= 1) {
-				tp.selectTab(0);
+			int indOfTab = tb.getSelectedTab();
+			if (indOfTab != -1) {
+				// Release locks if we were locked or locking.
+				if (uiStates.get(indOfTab) == UiState.LOCKED ||
+						uiStates.get(indOfTab) == UiState.LOCKING) {
+					
+					LockedDocument lockedDoc = new LockedDocument(null, null,
+							tabKeys.get(indOfTab),
+							tabTitles.get(indOfTab).getValue(),
+							tabContents.get(indOfTab).getHTML());
+					releaser.releaseLock(lockedDoc);
+				}
+				// Update UI and corresponding variables.
+				removeTabAtInd(indOfTab);
 			}
 		}
 	}
@@ -328,57 +216,131 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	public void onChange(ChangeEvent event) {
 		if (event.getSource().equals(documentList)) {
 			String key = documentList.getValue(documentList.getSelectedIndex());
-			// if it's already open in a tab, save the location of the tab
-			// and retrieve the title and contents from that one
-			int savedLoc = 0;
-			boolean wasOpen = false;
-			if (openTabKeys.contains(key)){
-				savedLoc = openTabKeys.indexOf(key);
-				tp.selectTab(savedLoc);
-				openTabKeys.remove(savedLoc);
-				wasOpen = true;
-				title = tabTitles.get(savedLoc);
-				contents = tabContents.get(savedLoc);
-			}
-			discardExisting(key);
-			if (wasOpen){
-				openTabKeys.add(savedLoc, key);
-				tp.selectTab(savedLoc);
-			} else {
-				openTabKeys.add(key);
-				contents = new RichTextArea();
-				title = new TextBox();
-				addNewTab(contents, title);
-				tabTitles.add(title);
-				tabContents.add(contents);
-				reader.getDocument(key);
-			}
-
+			loadDoc(key);
+		}
+	}
+	
+	protected void loadDoc(String key) {
+		// If it's already open in a tab, save the location of the tab
+		// and retrieve the title and contents from that one.
+		int savedLoc = tabKeys.indexOf(key);
+		if (savedLoc != -1) {
+			// Select the appropriate tab; this should fire the SelectionHandler.
+			tp.selectTab(savedLoc);
+		} else {
+			addNewTab(key, new RichTextArea(), new TextBox());
+			reader.getDocument(key);
 		}
 	}
 	
 	/**
-	 * Used to release existing locks when the active document changes.
-	 * 
-	 * @param key the key of the new active document or null for a new document
+	 * Updates relevant state-capturing variables and updates UI
+	 * if necessary.
 	 */
-	private void discardExisting(String key) {
-		if (lockedDoc != null) {
-			if (lockedDoc.getKey() == null) {
-				statusUpdate("Discarding new document.");
+	protected void updateVarsAndUi(String key, String title, 
+			String contents, UiState state) {
+		// Update local data structures.
+		int indResult = tabKeys.indexOf(key);
+		if (indResult != -1) {
+			tabTitles.get(indResult).setValue(title);
+			tabContents.get(indResult).setHTML(contents);
+			uiStates.set(indResult, state);
+			if (key.equals(tabKeys.get(currentTabInd))) {
+				setUiToState(state);
 			}
-			else if (!lockedDoc.getKey().equals(key)) {
-				releaser.releaseLock(lockedDoc);
-			}
-			else {
-				// Newly active item is the currently locked item.
-				return;
-			}
-			lockedDoc = null;
-			setDefaultButtons();
-		} else if (readOnlyDoc != null) {
-			if (readOnlyDoc.getKey().equals(key)) return;
-			readOnlyDoc = null;
 		}
+	}
+	
+	/**
+	 * Just update the state corresponding to the key.
+	 */
+	protected void updateVarsAndUi(String key, UiState state) {
+		// Update local data structures.
+		int indResult = tabKeys.indexOf(key);
+		if (indResult != -1) {
+			uiStates.set(indResult, state);
+			if (key.equals(tabKeys.get(currentTabInd))) {
+				setUiToState(state);
+			}
+		}
+	}
+	
+	/**
+	 * Resets the state of the buttons and edit objects to the specified state.
+	 * The state of these objects is modified by requesting or obtaining locks
+	 * and trying to or successfully saving.
+	 * 
+	 * @param state the UI state to switch to (as defined in UiState.java)
+	 */
+	protected void setUiToState(UiState state) {
+		refreshDoc.setEnabled(state.refreshDocEnabled);
+		lockButton.setEnabled(state.lockButtonEnabled);
+		saveButton.setEnabled(state.saveButtonEnabled);
+		closeButton.setEnabled(state.closeButtonEnabled);
+		title.setEnabled(state.titleEnabled);
+		contents.setEnabled(state.contentsEnabled);
+	}
+	
+	/**
+	 * Adds status lines to the console window to enable transparency of the
+	 * underlying processes.
+	 * 
+	 * @param status the status to add to the console window
+	 */
+	protected void statusUpdate(String status) {
+		while (statusArea.getWidgetCount() > 6) {
+			statusArea.remove(1);
+		}
+		final HTML statusUpd = new HTML(status);
+		statusArea.add(statusUpd);
+	}
+
+	protected void addNewTab(String key, RichTextArea contents, 
+			TextBox title) {
+		
+		// Update local variables.
+		currentTabInd = tb.getTabCount();
+		tabKeys.add(key);
+		tabTitles.add(title);
+		tabContents.add(contents);
+		uiStates.add(UiState.VIEWING);
+		setUiToState(UiState.VIEWING);
+		
+		// Update TabPanel's UI:
+		contents.setWidth("100%");
+		// Add a new tab with contents and title.
+		HorizontalPanel tabHeader = new HorizontalPanel();
+		tabHeader.add(title);
+		tp.add(contents, tabHeader);
+		// Select the last tab for the user.
+		tp.selectTab(tb.getTabCount() - 1);
+	}
+	
+	private void removeTabAtInd(int i) {
+		// Update local data structures
+		tabKeys.remove(i);
+		tabTitles.remove(i);
+		tabContents.remove(i);
+		uiStates.remove(i);
+		// Update tab panel
+		tp.remove(i);
+		int tabCount = tb.getTabCount();
+		if (tabCount > 0) {
+			if (i > tabCount - 1) {
+				tp.selectTab(tabCount - 1);
+			} else {
+				tb.selectTab(i);
+			}
+		} else {
+			setUiToState(UiState.NOT_VIEWING);
+		}
+	}
+	
+	private boolean currentKeyIsSet() {
+		if (currentTabInd < 0 || currentTabInd > tabKeys.size()) {
+			return false;
+		}
+		String currentKey = tabKeys.get(currentTabInd);
+		return currentKey != null && !currentKey.isEmpty();
 	}
 }

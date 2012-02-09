@@ -4,7 +4,6 @@ import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.logical.shared.ValueChangeEvent;
 import com.google.gwt.event.logical.shared.ValueChangeHandler;
-import com.google.gwt.user.client.History;
 import com.google.gwt.user.client.ui.RootPanel;
 
 /**
@@ -29,14 +28,6 @@ public class CollaboratorEntryPoint implements EntryPoint, ValueChangeHandler<St
 	 * @param event
 	 */
 	public void onValueChange(ValueChangeEvent<String> event) {
-		String token = event.getValue();
-		if (!token.equals(collab.getToken())) {
-			GWT.log("Got history token: " + token);
-			collab.receiveArgs(token);
-		}
-		else {
-			GWT.log("Skipping history token: " + token);
-		}
 	}
 
 	/**
@@ -49,16 +40,6 @@ public class CollaboratorEntryPoint implements EntryPoint, ValueChangeHandler<St
 		// Make the loading display invisible and the application visible.
 		RootPanel.get("application").add(collab);
 		RootPanel.get("loading").setVisible(false);
-		
-		// Check for an initial token; if it dne, get the default token.
-		String initToken = History.getToken();
-		if (initToken.equals("")) {
-			History.newItem(collab.getToken());
-		}
-		
-		// Hook into token changes and fire the initial token.
-		History.addValueChangeHandler(this);
-		History.fireCurrentHistoryState();
 	}
 
 }
