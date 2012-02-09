@@ -38,6 +38,10 @@ public class Document {
 	public Key getKey() {
 		return key;
 	}
+	
+	public void setKey(Key key) {
+		this.key = key;
+	}
 
 	public String getTitle() {
 		return title;
