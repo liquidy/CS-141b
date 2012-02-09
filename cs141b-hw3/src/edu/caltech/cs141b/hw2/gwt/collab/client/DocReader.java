@@ -1,10 +1,10 @@
-package edu.caltech.cs141b.hw3.gwt.collab.client;
+package edu.caltech.cs141b.hw2.gwt.collab.client;
 
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.user.client.History;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 
-import edu.caltech.cs141b.hw3.gwt.collab.shared.UnlockedDocument;
+import edu.caltech.cs141b.hw2.gwt.collab.shared.UnlockedDocument;
 
 /**
  * Used in conjunction with <code>CollaboratorService.getDocument()</code>.

@@ -1,12 +1,12 @@
-package edu.caltech.cs141b.hw3.gwt.collab.client;
+package edu.caltech.cs141b.hw2.gwt.collab.client;
 
 import java.util.List;
 
 import com.google.gwt.user.client.rpc.AsyncCallback;
 
-import edu.caltech.cs141b.hw3.gwt.collab.shared.DocumentMetadata;
-import edu.caltech.cs141b.hw3.gwt.collab.shared.LockedDocument;
-import edu.caltech.cs141b.hw3.gwt.collab.shared.UnlockedDocument;
+import edu.caltech.cs141b.hw2.gwt.collab.shared.DocumentMetadata;
+import edu.caltech.cs141b.hw2.gwt.collab.shared.LockedDocument;
+import edu.caltech.cs141b.hw2.gwt.collab.shared.UnlockedDocument;
 
 /**
  * The async counterpart of <code>CollaboratorService</code>.

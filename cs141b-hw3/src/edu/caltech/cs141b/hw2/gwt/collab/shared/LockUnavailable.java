@@ -1,4 +1,4 @@
-package edu.caltech.cs141b.hw3.gwt.collab.shared;
+package edu.caltech.cs141b.hw2.gwt.collab.shared;
 
 /**
  * Thrown when a lock cannot currently be retrieved from the server for the

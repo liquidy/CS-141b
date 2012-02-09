@@ -1,4 +1,4 @@
-package edu.caltech.cs141b.hw3.gwt.collab.server;
+package edu.caltech.cs141b.hw2.gwt.collab.server;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -10,12 +10,12 @@ import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
 import javax.jdo.Transaction;
 
-import edu.caltech.cs141b.hw3.gwt.collab.client.CollaboratorService;
-import edu.caltech.cs141b.hw3.gwt.collab.shared.DocumentMetadata;
-import edu.caltech.cs141b.hw3.gwt.collab.shared.LockExpired;
-import edu.caltech.cs141b.hw3.gwt.collab.shared.LockUnavailable;
-import edu.caltech.cs141b.hw3.gwt.collab.shared.LockedDocument;
-import edu.caltech.cs141b.hw3.gwt.collab.shared.UnlockedDocument;
+import edu.caltech.cs141b.hw2.gwt.collab.client.CollaboratorService;
+import edu.caltech.cs141b.hw2.gwt.collab.shared.DocumentMetadata;
+import edu.caltech.cs141b.hw2.gwt.collab.shared.LockExpired;
+import edu.caltech.cs141b.hw2.gwt.collab.shared.LockUnavailable;
+import edu.caltech.cs141b.hw2.gwt.collab.shared.LockedDocument;
+import edu.caltech.cs141b.hw2.gwt.collab.shared.UnlockedDocument;
 
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;

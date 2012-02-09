@@ -14,7 +14,7 @@
   <!-- Other module inherits                                      -->
 
   <!-- Specify the app entry point class.                         -->
-  <entry-point class='edu.caltech.cs141b.hw3.gwt.collab.client.CollaboratorEntryPoint'/>
+  <entry-point class='edu.caltech.cs141b.hw2.gwt.collab.client.CollaboratorEntryPoint'/>
 
   <!-- Specify the paths for translatable code                    -->
   <source path='client'/>

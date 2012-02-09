@@ -1,11 +1,11 @@
-package edu.caltech.cs141b.hw3.gwt.collab.client;
+package edu.caltech.cs141b.hw2.gwt.collab.client;
 
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 
-import edu.caltech.cs141b.hw3.gwt.collab.shared.LockExpired;
-import edu.caltech.cs141b.hw3.gwt.collab.shared.LockedDocument;
-import edu.caltech.cs141b.hw3.gwt.collab.shared.UnlockedDocument;
+import edu.caltech.cs141b.hw2.gwt.collab.shared.LockExpired;
+import edu.caltech.cs141b.hw2.gwt.collab.shared.LockedDocument;
+import edu.caltech.cs141b.hw2.gwt.collab.shared.UnlockedDocument;
 
 public class DocSaver implements AsyncCallback<UnlockedDocument> {
 	
