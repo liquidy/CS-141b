@@ -17,9 +17,10 @@ public class DocCreator implements AsyncCallback<UnlockedDocument> {
 	}
 	
 	public void createDocument() {
+		collaborator.statusUpdate("Attemping to create a new document.");
+		collaborator.createNew.setEnabled(false);
 		LockedDocument lockedDoc = new LockedDocument(null, null, null, 
 				"Untitled document", "");
-		collaborator.statusUpdate("Attemping to create a new document.");
 		collaborator.collabService.saveDocument(lockedDoc, this);
 	}
 
@@ -29,6 +30,8 @@ public class DocCreator implements AsyncCallback<UnlockedDocument> {
 				+ "; caught exception " + caught.getClass()
 				+ " with message: " + caught.getMessage());
 		GWT.log("Error saving document.", caught);
+		
+		collaborator.createNew.setEnabled(true);
 	}
 
 	@Override
@@ -45,5 +48,7 @@ public class DocCreator implements AsyncCallback<UnlockedDocument> {
 		
 		// Refresh list in case title was changed.
 		collaborator.lister.getDocumentList();
+		
+		collaborator.createNew.setEnabled(true);
 	}
 }

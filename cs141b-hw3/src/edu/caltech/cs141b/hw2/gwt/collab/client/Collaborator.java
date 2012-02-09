@@ -36,8 +36,6 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	protected Button createNew = new Button("Create New Document");
 	
 	// For displaying document information and editing document content.
-	protected TextBox title = new TextBox();
-	protected RichTextArea contents = new RichTextArea();
 	protected Button refreshDoc = new Button("Refresh Document");
 	protected Button lockButton = new Button("Get Document Lock");
 	protected Button saveButton = new Button("Save Document");
@@ -58,7 +56,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	private TabBar tb = tp.getTabBar();
 	
 	// Variables for keeping track of current states of the application.
-	protected int currentTabInd = 0;
+	protected int currentTabInd = -1;
 	protected ArrayList<String> tabKeys = new ArrayList<String>();
 	protected ArrayList<RichTextArea> tabContents = new ArrayList<RichTextArea>();
 	protected ArrayList<TextBox> tabTitles = new ArrayList<TextBox>();
@@ -136,11 +134,8 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		tp.addSelectionHandler(new SelectionHandler<Integer>() {
 			public void onSelection(SelectionEvent<Integer> event) {
 				// Changes UI to update to the current selected tab.
-				int currentIndex = event.getSelectedItem();
-				currentTabInd = currentIndex;
-				title = tabTitles.get(currentIndex);
-				contents = tabContents.get(currentIndex);
-				setUiToState(uiStates.get(currentIndex));
+				currentTabInd = event.getSelectedItem();
+				setUiToState(uiStates.get(currentTabInd));
 			}
 		});
 		
@@ -171,22 +166,19 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		} else if (event.getSource().equals(createNew)) {
 			creator.createDocument();
 		} else if (event.getSource().equals(refreshDoc)) {
-			if (currentKeyIsSet()) {
+			if (tabIsSelected()) {
 				reader.getDocument(tabKeys.get(tb.getSelectedTab()));
 			}
 		} else if (event.getSource().equals(lockButton)) {
-			if (currentKeyIsSet()) {
+			if (tabIsSelected()) {
 				locker.lockDocument(tabKeys.get(tb.getSelectedTab()));
 			}
 		} else if (event.getSource().equals(saveButton)) {
-			if (currentKeyIsSet()) {
-				// Update data structures
-				tabTitles.set(currentTabInd, title);
-				tabContents.set(currentTabInd, contents);
+			if (tabIsSelected()) {
 				// Make async call to save the document (also updates UI).
 				LockedDocument lockedDoc = new LockedDocument(null, null,
-						tabKeys.get(currentTabInd), title.getValue(), 
-						contents.getHTML());
+						tabKeys.get(currentTabInd), tabTitles.get(currentTabInd).getValue(), 
+						tabContents.get(currentTabInd).getHTML());
 				saver.saveDocument(lockedDoc);
 			}
 		} else if (event.getSource().equals(closeButton)) {
@@ -277,8 +269,10 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		lockButton.setEnabled(state.lockButtonEnabled);
 		saveButton.setEnabled(state.saveButtonEnabled);
 		closeButton.setEnabled(state.closeButtonEnabled);
-		title.setEnabled(state.titleEnabled);
-		contents.setEnabled(state.contentsEnabled);
+		if (tabIsSelected()) {
+			tabTitles.get(currentTabInd).setEnabled(state.titleEnabled);
+			tabContents.get(currentTabInd).setEnabled(state.contentsEnabled);
+		}
 	}
 	
 	/**
@@ -307,8 +301,6 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		setUiToState(UiState.VIEWING);
 		
 		// Update TabPanel's UI:
-		contents.setWidth("100%");
-		// Add a new tab with contents and title.
 		HorizontalPanel tabHeader = new HorizontalPanel();
 		tabHeader.add(title);
 		tp.add(contents, tabHeader);
@@ -332,15 +324,12 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 				tb.selectTab(i);
 			}
 		} else {
+			currentTabInd = -1;
 			setUiToState(UiState.NOT_VIEWING);
 		}
 	}
 	
-	private boolean currentKeyIsSet() {
-		if (currentTabInd < 0 || currentTabInd > tabKeys.size()) {
-			return false;
-		}
-		String currentKey = tabKeys.get(currentTabInd);
-		return currentKey != null && !currentKey.isEmpty();
+	private boolean tabIsSelected() {
+		return currentTabInd >= 0 && currentTabInd < tabKeys.size();
 	}
 }
