@@ -1,23 +1,24 @@
 package edu.caltech.cs141b.hw2.gwt.collab.client;
 
-import com.google.gwt.event.dom.client.ChangeEvent;
 import java.util.ArrayList;
 
-import com.google.gwt.user.client.ui.TabBar;
+import com.google.gwt.event.dom.client.ChangeEvent;
 import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.event.logical.shared.SelectionEvent;
 import com.google.gwt.event.logical.shared.SelectionHandler;
-import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.HorizontalPanel;
+import com.google.gwt.user.client.ui.Image;
 import com.google.gwt.user.client.ui.ListBox;
+import com.google.gwt.user.client.ui.PushButton;
 import com.google.gwt.user.client.ui.RichTextArea;
+import com.google.gwt.user.client.ui.TabBar;
+import com.google.gwt.user.client.ui.TabPanel;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.VerticalPanel;
-import com.google.gwt.user.client.ui.TabPanel;
 
 import edu.caltech.cs141b.hw2.gwt.collab.shared.LockedDocument;
 
@@ -26,20 +27,26 @@ import edu.caltech.cs141b.hw2.gwt.collab.shared.LockedDocument;
  */
 public class Collaborator extends Composite implements ClickHandler, ChangeHandler {
 	
-	public static final boolean DEBUG = true;
+	public static final boolean DEBUG = false;
 	
 	protected CollaboratorServiceAsync collabService;
 	
 	// Managing available documents.
 	protected ListBox documentList = new ListBox();
-	protected Button refreshList = new Button("Refresh Document List");
-	protected Button createNew = new Button("Create New Document");
+	protected PushButton refreshList = new PushButton(
+			new Image("images/refresh_small.png"));
+	protected PushButton createNew = new PushButton(
+			new Image("images/plus_small.png"));
 	
 	// For displaying document information and editing document content.
-	protected Button refreshDoc = new Button("Refresh Document");
-	protected Button lockButton = new Button("Get Document Lock");
-	protected Button saveButton = new Button("Save Document");
-	protected Button closeButton = new Button("Close Current");
+	protected PushButton refreshDoc = new PushButton(
+			new Image("images/refresh.png"));
+	protected PushButton lockButton = new PushButton(
+			new Image("images/locked.png"));
+	protected PushButton saveButton = new PushButton(
+			new Image("images/save.png"));
+	protected PushButton closeButton = new PushButton(
+			new Image("images/close.png"));
 	
 	// Callback objects.
 	protected DocLister lister = new DocLister(this);
@@ -77,23 +84,18 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		
 		// leftColVp holds our document list and console.
 		VerticalPanel leftColVp = new VerticalPanel();
-		leftColVp.setSpacing(0);
-		
-		// docsVp holds document list and relevant buttons (refresh / create new).
-		VerticalPanel docsVp = new VerticalPanel();
-		docsVp.setSpacing(10);
-		docsVp.add(new HTML("<h2>Available Documents</h2>"));
-		documentList.setWidth("100%");
-		docsVp.add(documentList);
+		leftColVp.add(new HTML("<h2>Docs</h2>"));
 		
 		// docsButtonsHp holds relevant buttons (refresh / create new).
 		HorizontalPanel docsButtonsHp = new HorizontalPanel();
-		docsButtonsHp.setSpacing(10);
 		docsButtonsHp.add(refreshList);
 		docsButtonsHp.add(createNew);
-		docsVp.add(docsButtonsHp);
-		docsVp.setHeight("100%");
-		leftColVp.add(docsVp);
+		leftColVp.add(docsButtonsHp);
+		
+		// docsVp holds document list and relevant buttons (refresh / create new).
+		documentList.setStyleName("doc-list");
+		leftColVp.add(documentList);
+		leftColVp.setStyleName("list-column");
 		
 		// Add console to leftColVp.
 		if (DEBUG) {
@@ -108,7 +110,6 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		// Now let's work on the right side of the page, which will include
 		// the tabPanel for documents (as well as some relevant buttons)
 		VerticalPanel rightColVp = new VerticalPanel();
-		rightColVp.setSpacing(20);
 
 		// Create horizontal panel that holds the document-specific buttons.
 		HorizontalPanel hp = new HorizontalPanel();
@@ -124,6 +125,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		rightColVp.add(tp);
 		rightColVp.setWidth("100%");
 		rightColVp.setHeight("100%");
+		rightColVp.setStyleName("doc-column");
 		
 		outerHp.add(rightColVp);
 		
