@@ -9,18 +9,19 @@ import edu.caltech.cs141b.hw2.gwt.collab.shared.LockedDocument;
 /**
  * Used in conjunction with <code>CollaboratorService.lockDocument()</code>.
  */
-public class DocLocker implements AsyncCallback<LockedDocument> {
+public class DocRequestor implements AsyncCallback<Integer> {
 	
 	private Collaborator collaborator;
 	
-	public DocLocker(Collaborator collaborator) {
+	public DocRequestor(Collaborator collaborator) {
 		this.collaborator = collaborator;
 	}
 	
-	public void lockDocument(String key) {
-		collaborator.statusUpdate("Attempting to lock document.");
-		collaborator.updateVarsAndUi(key, UiState.LOCKING);
-		collaborator.collabService.lockDocument(key, collaborator.channelToken, this);
+	public void requestDocument(String key) {
+		collaborator.statusUpdate("Requesting document: " + key);
+		collaborator.updateVarsAndUi(key, UiState.REQUESTING);
+		collaborator.collabService.requestDocument(
+				key, collaborator.channelToken, this);
 	}
 
 	@Override
@@ -29,7 +30,7 @@ public class DocLocker implements AsyncCallback<LockedDocument> {
 			LockUnavailable caughtEx = ((LockUnavailable) caught);
 			if (caughtEx.getWrongCredentials()) {
 				collaborator.statusUpdate("Lock is available, but you have the" +
-						" wrong credentials; save failed. It's locked by: " + 
+						"wrong credentials; save failed. It's locked by: " +
 						caughtEx.getCredentials());
 			} else {
 				collaborator.statusUpdate("Lock is unavailable; save failed. " +
@@ -42,12 +43,17 @@ public class DocLocker implements AsyncCallback<LockedDocument> {
 					+ " with message: " + caught.getMessage());
 			GWT.log("Error getting document lock.", caught);
 		}
+		
 	}
 
 	@Override
-	public void onSuccess(LockedDocument result) {
-		collaborator.statusUpdate("Lock retrieved for document.");
-		gotDoc(result);
+	public void onSuccess(Integer queueSize) {
+		if (queueSize > 0) {
+			collaborator.statusUpdate("There are " + queueSize + " people ahead of" +
+					" you waiting to lock the document.");
+		}
+		
+		// TODO: Update data structures + status panel. 
 	}
 	
 	/**

@@ -2,6 +2,11 @@ package edu.caltech.cs141b.hw2.gwt.collab.client;
 
 import java.util.ArrayList;
 
+import com.google.gwt.appengine.channel.client.Channel;
+import com.google.gwt.appengine.channel.client.ChannelFactory;
+import com.google.gwt.appengine.channel.client.ChannelFactory.ChannelCreatedCallback;
+import com.google.gwt.appengine.channel.client.SocketError;
+import com.google.gwt.appengine.channel.client.SocketListener;
 import com.google.gwt.event.dom.client.ChangeEvent;
 import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.event.dom.client.ClickEvent;
@@ -21,13 +26,14 @@ import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.VerticalPanel;
 
 import edu.caltech.cs141b.hw2.gwt.collab.shared.LockedDocument;
+import edu.caltech.cs141b.hw2.gwt.collab.shared.Messages;
 
 /**
  * Main class for a single Collaborator widget.
  */
 public class Collaborator extends Composite implements ClickHandler, ChangeHandler {
 	
-	public static final boolean DEBUG = false;
+	public static final boolean SHOW_CONSOLE = true;
 	
 	protected CollaboratorServiceAsync collabService;
 	
@@ -51,10 +57,12 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	// Callback objects.
 	protected DocLister lister = new DocLister(this);
 	protected DocReader reader = new DocReader(this);
-	private DocLocker locker = new DocLocker(this);
+	private DocRequestor requestor = new DocRequestor(this);
+	protected DocLocker locker = new DocLocker(this);
 	protected DocReleaser releaser = new DocReleaser(this);
 	private DocSaver saver = new DocSaver(this);
 	private DocCreator creator = new DocCreator(this);
+	private ChannelCreator channelCreator = new ChannelCreator(this);
 	
 	// Status tracking.
 	private VerticalPanel statusArea = new VerticalPanel();
@@ -68,6 +76,9 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	protected ArrayList<RichTextArea> tabContents = new ArrayList<RichTextArea>();
 	protected ArrayList<TextBox> tabTitles = new ArrayList<TextBox>();
 	protected ArrayList<UiState> uiStates = new ArrayList<UiState>();
+	
+	// Variables for keeping track of concurrency-related states.
+	protected String channelToken = null;
 	
 	/**
 	 * UI initialization.
@@ -98,7 +109,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		leftColVp.setStyleName("list-column");
 		
 		// Add console to leftColVp.
-		if (DEBUG) {
+		if (SHOW_CONSOLE) {
 				statusArea.setSpacing(10);
 				statusArea.add(new HTML("<h2>Console</h2>"));
 				leftColVp.add(statusArea);
@@ -155,6 +166,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		initWidget(outerHp);
 		
 		lister.getDocumentList();
+		channelCreator.createChannel();
 	}
 	
 	/* (non-Javadoc)
@@ -173,7 +185,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 			}
 		} else if (event.getSource().equals(lockButton)) {
 			if (tabIsSelected()) {
-				locker.lockDocument(tabKeys.get(tb.getSelectedTab()));
+				requestor.requestDocument(tabKeys.get(tb.getSelectedTab()));
 			}
 		} else if (event.getSource().equals(saveButton)) {
 			if (tabIsSelected()) {
@@ -186,9 +198,11 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		} else if (event.getSource().equals(closeButton)) {
 			int indOfTab = tb.getSelectedTab();
 			if (indOfTab != -1) {
-				// Release locks if we were locked or locking.
-				if (uiStates.get(indOfTab) == UiState.LOCKED ||
-						uiStates.get(indOfTab) == UiState.LOCKING) {
+				// Release locks according to state.
+				UiState state = uiStates.get(indOfTab);
+				if (state == UiState.LOCKED ||
+						state == UiState.LOCKING ||
+						state == UiState.REQUESTING) {
 					
 					LockedDocument lockedDoc = new LockedDocument(null, null,
 							tabKeys.get(indOfTab),
@@ -212,6 +226,54 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 			String key = documentList.getValue(documentList.getSelectedIndex());
 			loadDoc(key);
 		}
+	}
+	
+	protected void setUpChannel() {
+		// Establish the channel handlers with our given channel token.
+		ChannelFactory.createChannel(channelToken, new ChannelCreatedCallback() {
+		  @Override
+		  public void onChannelCreated(Channel channel) {
+		    channel.open(new SocketListener() {
+		      @Override
+		      public void onOpen() {
+		        statusUpdate("Channel successfully opened!");
+		      }
+		      @Override
+		      public void onMessage(String message) {
+		      	char messageType = message.charAt(0);
+		      	if (messageType == Messages.CODE_LOCK_READY) {
+		      		// Doc is ready to be locked. The rest of the string is doc ID.
+		      		String docId = message.substring(1);
+		      		docId = docId.replaceAll("\\s", "");
+		      		if (tabIsSelected() && tabKeys.contains(docId)) {
+		    				locker.lockDocument(docId);
+		    			}
+		      	} else if (messageType == Messages.CODE_LOCK_NOT_READY) {
+		      		// Doc is not ready to be locked. The rest of the string is
+		      		// the number of people in front of us in the queue.
+		      		String restOfString = message.substring(1);
+		      		int delimiter = restOfString.indexOf(':');
+		      		int numPeopleLeft = Integer.parseInt(restOfString.substring(0, delimiter));
+		      		String docId = restOfString.substring(delimiter + 1);
+		      		docId = docId.replaceAll("\\s", "");
+		      		statusUpdate("Update: " + numPeopleLeft + " people are now" +
+		      				" ahead of you for document " + docId + ".");
+		      		if (tabIsSelected() && tabKeys.contains(docId)) {
+		      			// TODO: Update UI with this number.
+		    			}
+		      	}
+		      }
+		      @Override
+		      public void onError(SocketError error) {
+		      	statusUpdate("Channel Error:" + error.getDescription());
+		      }
+		      @Override
+		      public void onClose() {
+		      	statusUpdate("Channel closed!");
+		      }
+		    });
+		  }
+		});
 	}
 	
 	protected void loadDoc(String key) {

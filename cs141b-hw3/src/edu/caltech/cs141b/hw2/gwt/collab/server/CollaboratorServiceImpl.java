@@ -1,25 +1,34 @@
 package edu.caltech.cs141b.hw2.gwt.collab.server;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Queue;
+import java.util.UUID;
 import java.util.logging.Logger;
 
 import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
 import javax.jdo.Transaction;
 
+import com.google.appengine.api.channel.ChannelMessage;
+import com.google.appengine.api.channel.ChannelService;
+import com.google.appengine.api.channel.ChannelServiceFactory;
+import com.google.appengine.api.datastore.Key;
+import com.google.appengine.api.datastore.KeyFactory;
+import com.google.gwt.user.server.rpc.RemoteServiceServlet;
+
 import edu.caltech.cs141b.hw2.gwt.collab.client.CollaboratorService;
 import edu.caltech.cs141b.hw2.gwt.collab.shared.DocumentMetadata;
 import edu.caltech.cs141b.hw2.gwt.collab.shared.LockExpired;
 import edu.caltech.cs141b.hw2.gwt.collab.shared.LockUnavailable;
 import edu.caltech.cs141b.hw2.gwt.collab.shared.LockedDocument;
+import edu.caltech.cs141b.hw2.gwt.collab.shared.Messages;
 import edu.caltech.cs141b.hw2.gwt.collab.shared.UnlockedDocument;
-
-import com.google.appengine.api.datastore.Key;
-import com.google.appengine.api.datastore.KeyFactory;
-import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 
 /**
  * The server side implementation of the RPC service.
@@ -30,8 +39,25 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 	
 	public static final int LOCK_TIMEOUT = 30;     // Seconds
 	
+	private Hashtable<String, String> tokenToClient = 
+			new Hashtable<String, String>();
+	private Hashtable<String, Queue<String>> docToQueue =
+			new Hashtable<String, Queue<String>>();    // Queues are of clientIds
+	private Hashtable<String, Object> docToQueueLocks = 
+			new Hashtable<String, Object>();
+	private Object instantiationLock = new Object();
+	
 	@SuppressWarnings("unused")
 	private static final Logger log = Logger.getLogger(CollaboratorServiceImpl.class.toString());
+	
+	@Override
+	public String setUpChannel() {
+		ChannelService channelService = ChannelServiceFactory.getChannelService();
+    String clientId = UUID.randomUUID().toString();
+		String token = channelService.createChannel(clientId);
+		tokenToClient.put(token, clientId);
+		return token;
+	}
 	
 	@Override
 	public List<DocumentMetadata> getDocumentList() {
@@ -58,11 +84,40 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 			pm.close();
 		}
 	}
+	
+	@Override
+	public Integer requestDocument(String documentKey, String token) {
+		int numPeopleInFront = -1;
+		String clientId = tokenToClient.get(token);
+		lazyInstantiationsForDoc(documentKey);
+		Object queueLock = docToQueueLocks.get(documentKey);
+		synchronized (queueLock) {
+			Queue<String> clientQueue = docToQueue.get(documentKey);
+			numPeopleInFront = clientQueue.size();
+			clientQueue.add(clientId);
+		}
+		if (numPeopleInFront == 0) {
+			sendMessage(clientId, Messages.CODE_LOCK_READY + documentKey);
+		}
+		return numPeopleInFront;
+	}
 
 	@Override
-	public LockedDocument lockDocument(String documentKey)
+	public LockedDocument lockDocument(String documentKey, String token)
 			throws LockUnavailable {
 		
+		// Check the queue to see that we're not cutting someone in line.
+		lazyInstantiationsForDoc(documentKey);
+		Object queueLock = docToQueueLocks.get(documentKey);
+		synchronized (queueLock) {
+			Queue<String> clientIds = docToQueue.get(documentKey);
+			if (clientIds != null && clientIds.size() != 0 &&
+					!clientIds.peek().equals(tokenToClient.get(token))) {
+				throw new LockUnavailable(true, null, null, clientIds.peek());
+			}
+		}
+		
+		// Lock the document.
 		Key key = KeyFactory.stringToKey(documentKey);
 		Document persistedDoc = null;
 		PersistenceManager pm = PMF.get().getPersistenceManager();
@@ -82,21 +137,20 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 			Date currentDate = new Date();
 			Date lockedUntil = persistedDoc.getLockedUntil();
 			String lockedBy = persistedDoc.getLockedBy();
-			String ipAddress = getThreadLocalRequest().getRemoteAddr();
 			if (lockedUntil == null || lockedBy == null) {
 				lockAvailable = true;
 			} else {
 				lockAvailable = lockedUntil.before(currentDate) || 
-						ipAddress.equals(lockedBy);
+						token.equals(lockedBy);
 			}
 			if (!lockAvailable) {
 				// Determine if exception was thrown because of timestamps or creds.
-				throw new LockUnavailable(!ipAddress.equals(lockedBy),
+				throw new LockUnavailable(!token.equals(lockedBy),
 						persistedDoc.getLockedUntil(), 
 						KeyFactory.keyToString(persistedDoc.getKey()),
 						lockedBy); 
 			} else {
-				persistedDoc.setLockedBy(getThreadLocalRequest().getRemoteAddr());
+				persistedDoc.setLockedBy(token);
 				Calendar cal = Calendar.getInstance();
 				cal.add(Calendar.SECOND, LOCK_TIMEOUT);
 				persistedDoc.setLockedUntil(cal.getTime());
@@ -104,19 +158,24 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 			}
 			
 			txn.commit();
+			
+			String keyStr = KeyFactory.keyToString(persistedDoc.getKey());
+			// TODO: Set up timer so that after a timeout period, we just move onto the
+			// next person in the queue.
+//			timer.schedule(new DocLockNotifyTask(this, keyStr), LOCK_TIMEOUT * 1000);
+			
+			return new LockedDocument(
+	        persistedDoc.getLockedBy(), 
+	        persistedDoc.getLockedUntil(), 
+	        keyStr,
+	        persistedDoc.getTitle(),
+	        persistedDoc.getContents());
 		} finally {
 			if (txn.isActive()) {
 				txn.rollback();
 			}
 			pm.close();
 		}
-		
-		return new LockedDocument(
-		        persistedDoc.getLockedBy(), 
-		        persistedDoc.getLockedUntil(), 
-		        KeyFactory.keyToString(persistedDoc.getKey()),
-		        persistedDoc.getTitle(),
-		        persistedDoc.getContents());
 	}
 	
 	@Override
@@ -131,29 +190,30 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 			persistedDoc = pm.getObjectById(Document.class, key);
 	    
 			txn.commit();
+			
+			if (persistedDoc == null) {
+				return null;
+			} else {
+				return new UnlockedDocument(
+				        documentKey, persistedDoc.getTitle(), persistedDoc.getContents());
+			}
 		} finally {
 			if (txn.isActive()) {
 				txn.rollback();
 			}
 			pm.close();
 		}
-		
-		if (persistedDoc == null) {
-			return null;
-		} else {
-			return new UnlockedDocument(
-			        documentKey, persistedDoc.getTitle(), persistedDoc.getContents());
-		}
 	}
 
 	@Override
-	public UnlockedDocument saveDocument(LockedDocument doc)
+	public UnlockedDocument saveDocument(LockedDocument doc, String token)
 			throws LockExpired {
 		
 		// Find key from doc.
+		String keyStr = doc.getKey();
 		Key key = null;
-		if (doc.getKey() != null) {
-			key = KeyFactory.stringToKey(doc.getKey());
+		if (keyStr != null) {
+			key = KeyFactory.stringToKey(keyStr);
 		}
 		
 		// Persist Document JDO.
@@ -172,36 +232,41 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 			// so that a key will automatically be generated. Otherwise, take the
 			// object, check credentials, modify some fields, and persist again.
 			if (persistedDoc == null) {
-					persistedDoc = new Document(
-							doc.getTitle(), 
-							doc.getContents(),
-							getThreadLocalRequest().getRemoteAddr(),
-							doc.getLockedUntil());
+				persistedDoc = new Document(
+						doc.getTitle(), 
+						doc.getContents(),
+						token,
+						null);
 			} else {
 				Date currentDate = new Date();
 				Date lockedUntil = persistedDoc.getLockedUntil();
 				String lockedBy = persistedDoc.getLockedBy();
-				String ipAddress = getThreadLocalRequest().getRemoteAddr();
 				if (lockedUntil != null && lockedUntil.before(currentDate)) {
 					throw new LockExpired(false, lockedUntil, 
 							KeyFactory.keyToString(persistedDoc.getKey()), lockedBy); 
 				}
-				if (lockedBy != null && !lockedBy.equals(ipAddress)) {
+				if (lockedBy != null && !lockedBy.equals(token)) {
 					throw new LockExpired(true, lockedUntil, 
 							KeyFactory.keyToString(persistedDoc.getKey()), lockedBy); 
 				}
 				
 				persistedDoc.setTitle(doc.getTitle());
 				persistedDoc.setContents(doc.getContents());
-				persistedDoc.setLockedBy(lockedBy);
-				persistedDoc.setLockedUntil(lockedUntil);
+				persistedDoc.setLockedBy(null);
+				persistedDoc.setLockedUntil(null);
 			}
 			pm.makePersistent(persistedDoc);
 
 			txn.commit();
+			
+			keyStr = KeyFactory.keyToString(persistedDoc.getKey());
+			// Update queue for the doc and notify the person next in line.
+			lazyInstantiationsForDoc(keyStr);
+			pollDocQueue(keyStr);
+			
 			// Pack up UnlockedDocument to return.
 			return new UnlockedDocument(
-					KeyFactory.keyToString(persistedDoc.getKey()), 
+					keyStr,
 					persistedDoc.getTitle(), 
 					persistedDoc.getContents());
 		} finally {
@@ -213,8 +278,9 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 	}
 	
 	@Override
-	public void releaseLock(LockedDocument doc) throws LockExpired {
-		if (doc.getKey() == null) {
+	public void releaseLock(LockedDocument doc, String token) throws LockExpired {
+		String keyStr = doc.getKey();
+		if (keyStr == null) {
 			return;
 		}
 		
@@ -224,7 +290,7 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 			txn.begin();
 			
 			// Get persisted document.
-			Key key = KeyFactory.stringToKey(doc.getKey());
+			Key key = KeyFactory.stringToKey(keyStr);
 			Document persistedDoc = pm.getObjectById(Document.class, key);
 			// Checking null in case key was invalid (e.g. by a malicious user).
 			if (persistedDoc == null) {
@@ -236,19 +302,21 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 			Date lockedUntil = persistedDoc.getLockedUntil();
 			Date currentDate = new Date();
 			String lockedBy = doc.getLockedBy();
-			String ipAddress = getThreadLocalRequest().getRemoteAddr();
 			if (lockedUntil != null && lockedUntil.before(currentDate)) {
 				throw new LockExpired(false, lockedUntil, 
 						KeyFactory.keyToString(persistedDoc.getKey()), lockedBy); 
-			} else if (lockedBy != null && !lockedBy.equals(ipAddress)) {
+			} else if (lockedBy != null && !lockedBy.equals(token)) {
 				throw new LockExpired(true, lockedUntil, 
 						KeyFactory.keyToString(persistedDoc.getKey()), lockedBy); 
 			} else {
 				// Release the lock on the document; update lockedBy and lockedUntil.
-				persistedDoc.setLockedBy(getThreadLocalRequest().getRemoteAddr());
-				persistedDoc.setLockedUntil(currentDate);
+				persistedDoc.setLockedBy(null);
+				persistedDoc.setLockedUntil(null);
 				pm.makePersistent(persistedDoc);
 			}
+			
+			// Update queue for the doc and notify the person next in line.
+			pollDocQueue(KeyFactory.keyToString(persistedDoc.getKey()));
 			
 			txn.commit();
 		} finally {
@@ -256,6 +324,50 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 				txn.rollback();
 			}
 			pm.close();
+		}
+	}
+	
+	protected void pollDocQueue(String documentKey) {
+		// Update queue for the doc and notify the person next in line.
+		Object queueLock = docToQueueLocks.get(documentKey);
+		synchronized (queueLock) {
+			Queue<String> clientIds = docToQueue.get(documentKey);
+			clientIds.poll();
+			if (!clientIds.isEmpty()) {
+				Iterator<String> clientsItr = clientIds.iterator();
+				// Notify the first person that doc is ready to be locked.
+				String first = clientsItr.next();
+				sendMessage(first, Messages.CODE_LOCK_READY + documentKey);
+				// Notify the rest that the number of people left has changed.
+				int i = 1;
+				while (clientsItr.hasNext()) {
+					String clientId = clientsItr.next();
+					sendMessage(clientId, Messages.CODE_LOCK_NOT_READY + 
+							String.valueOf(i) + ":" + documentKey);
+					i++;
+				}
+			}
+		}
+		
+		// TODO: Also cancel the scheduled timeout task (of class DocLockNotifyTask).
+		
+	}
+	
+	private void sendMessage(String clientId, String message) {
+		ChannelService channelService = ChannelServiceFactory.getChannelService();
+		channelService.sendMessage(new ChannelMessage(clientId, message));
+	}
+	
+	private void lazyInstantiationsForDoc(String documentKey) {
+		if (documentKey == null || documentKey.isEmpty())
+			return;
+		
+		// Lazy instantiation for the queues and locks.
+		synchronized (instantiationLock) {
+			if (!docToQueue.containsKey(documentKey)) {
+				docToQueue.put(documentKey, new ArrayDeque<String>());
+				docToQueueLocks.put(documentKey, new Object());
+			}
 		}
 	}
 }

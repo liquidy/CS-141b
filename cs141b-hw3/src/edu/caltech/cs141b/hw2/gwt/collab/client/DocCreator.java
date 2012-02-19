@@ -21,7 +21,8 @@ public class DocCreator implements AsyncCallback<UnlockedDocument> {
 		collaborator.createNew.setEnabled(false);
 		LockedDocument lockedDoc = new LockedDocument(null, null, null, 
 				"Untitled document", "");
-		collaborator.collabService.saveDocument(lockedDoc, this);
+		collaborator.collabService.saveDocument(
+				lockedDoc, collaborator.channelToken, this);
 	}
 
 	@Override

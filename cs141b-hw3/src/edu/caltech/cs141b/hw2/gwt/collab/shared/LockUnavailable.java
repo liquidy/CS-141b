@@ -17,7 +17,6 @@ public class LockUnavailable extends Exception {
 	private static final long serialVersionUID = -8039330302911776861L;
 	
 	public LockUnavailable() {
-		
 	}
 	
 	public LockUnavailable(String message) {

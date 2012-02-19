@@ -18,6 +18,11 @@ import edu.caltech.cs141b.hw2.gwt.collab.shared.UnlockedDocument;
 public interface CollaboratorService extends RemoteService {
 	
 	/**
+	 * Sets up a channel for the client that called this method.
+	 */
+	String setUpChannel();
+	
+	/**
 	 * Used to get a list of the currently available documents.
 	 * 
 	 * @return a list of the metadata of the currently available documents
@@ -28,16 +33,26 @@ public interface CollaboratorService extends RemoteService {
 	 * Used to lock an existing document for editing.
 	 * 
 	 * @param documentKey the key of the document to lock
+	 * @param token the token that identifies the client
+	 * @return an Integer holding the number of people in front in the queue
+	 */
+	Integer requestDocument(String documentKey, String token);
+	
+	/**
+	 * Used to lock an existing document for editing.
+	 * 
+	 * @param documentKey the key of the document to lock
+	 * @param token the token that identifies the client
 	 * @return a LockedDocument object containing the current document state
 	 *         and the locking primites necessary to save the document
 	 * @throws LockUnavailable if a lock cannot be obtained
 	 */
-	LockedDocument lockDocument(String documentKey) throws LockUnavailable;
+	LockedDocument lockDocument(String documentKey, String token) throws LockUnavailable;
 	
 	/**
 	 * Used to retrieve a document in read-only mode.
 	 * 
-	 * @param documentKey the key of the documen to read
+	 * @param documentKey the key of the document to read
 	 * @return an UnlockedDocument object which contains the entire document
 	 *         but without any locking primitives
 	 */
@@ -49,11 +64,12 @@ public interface CollaboratorService extends RemoteService {
 	 * @param doc the LockedDocument object returned by lockDocument(), with
 	 *         the document properties (but not the locking primitives)
 	 *         potentially modified
+	 * @param token the token that identifies the client
 	 * @return the read-only version of the saved document
 	 * @throws LockExpired if the locking primitives in the supplied
 	 *         LockedDocument object cannot be used to modify the document
 	 */
-	UnlockedDocument saveDocument(LockedDocument doc) throws LockExpired;
+	UnlockedDocument saveDocument(LockedDocument doc, String token) throws LockExpired;
 	
 	/**
 	 * Used to release a lock that is no longer needed without saving.
@@ -61,10 +77,11 @@ public interface CollaboratorService extends RemoteService {
 	 * @param doc the LockedDocument object returned by lockDocument(); any
 	 *         modifications made to the document properties in this case are
 	 *         ignored
+	 * @param token the token that identifies the client
 	 * @throws LockExpired if the locking primitives in the supplied
 	 *         LockedDocument object cannot be used to release the lock
 	 */
-	void releaseLock(LockedDocument doc) throws LockExpired;
+	void releaseLock(LockedDocument doc, String token) throws LockExpired;
 	
 }
 

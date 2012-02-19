@@ -13,6 +13,7 @@ public enum UiState {
 	VIEWING (true, true, false, true, false, false),
 	LOCKED (false, false, true, true, true, true),
 	LOCKING (false, false, false, false, false, false),
+	REQUESTING (false, false, false, true, false, false),
 	SAVING (false, false, false, false, false, false);
 	
 	public boolean refreshDocEnabled;

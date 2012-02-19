@@ -13,18 +13,24 @@ import edu.caltech.cs141b.hw2.gwt.collab.shared.UnlockedDocument;
  */
 public interface CollaboratorServiceAsync {
 
+	void setUpChannel(AsyncCallback<String> callback);
+	
 	void getDocumentList(AsyncCallback<List<DocumentMetadata>> callback);
 
-	void lockDocument(String documentKey,
+	void requestDocument(String documentKey, String token,
+			AsyncCallback<Integer> callback);
+	
+	void lockDocument(String documentKey, String token,
 			AsyncCallback<LockedDocument> callback);
 
 	void getDocument(String documentKey,
 			AsyncCallback<UnlockedDocument> callback);
 
-	void saveDocument(LockedDocument doc,
+	void saveDocument(LockedDocument doc, String token,
 			AsyncCallback<UnlockedDocument> callback);
 
-	void releaseLock(LockedDocument doc, AsyncCallback<Void> callback);
+	void releaseLock(LockedDocument doc, String token,
+			AsyncCallback<Void> callback);
 
 }
 

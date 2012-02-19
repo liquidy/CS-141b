@@ -18,9 +18,10 @@ public class DocReleaser implements AsyncCallback<Void> {
 	}
 	
 	public void releaseLock(LockedDocument lockedDoc) {
-		collaborator.statusUpdate("Releasing lock on '" + lockedDoc.getTitle()
-				+ "'.");
-		collaborator.collabService.releaseLock(lockedDoc, this);
+		collaborator.statusUpdate("Releasing lock on '" + 
+				lockedDoc.getTitle() + "'.");
+		collaborator.collabService.releaseLock(
+				lockedDoc, collaborator.channelToken, this);
 	}
 
 	@Override
