@@ -6,9 +6,6 @@ import com.google.gwt.user.client.rpc.AsyncCallback;
 import edu.caltech.cs141b.hw2.gwt.collab.shared.LockExpired;
 import edu.caltech.cs141b.hw2.gwt.collab.shared.LockedDocument;
 
-/**
- * Used in conjunction with <code>CollaboratorService.releaseLock()</code>.
- */
 public class DocReleaser implements AsyncCallback<Void> {
 	
 	private Collaborator collaborator;

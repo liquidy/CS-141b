@@ -25,6 +25,7 @@ import com.google.gwt.user.client.ui.TabPanel;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.VerticalPanel;
 
+import edu.caltech.cs141b.hw2.gwt.collab.server.CollaboratorServiceImpl;
 import edu.caltech.cs141b.hw2.gwt.collab.shared.LockedDocument;
 import edu.caltech.cs141b.hw2.gwt.collab.shared.Messages;
 
@@ -57,12 +58,13 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	// Callback objects.
 	protected DocLister lister = new DocLister(this);
 	protected DocReader reader = new DocReader(this);
-	private DocRequestor requestor = new DocRequestor(this);
+	protected DocRequestor requestor = new DocRequestor(this);
+	protected DocUnrequestor unrequestor = new DocUnrequestor(this);
 	protected DocLocker locker = new DocLocker(this);
 	protected DocReleaser releaser = new DocReleaser(this);
-	private DocSaver saver = new DocSaver(this);
-	private DocCreator creator = new DocCreator(this);
-	private ChannelCreator channelCreator = new ChannelCreator(this);
+	protected DocSaver saver = new DocSaver(this);
+	protected DocCreator creator = new DocCreator(this);
+	protected ChannelCreator channelCreator = new ChannelCreator(this);
 	
 	// Status tracking.
 	private VerticalPanel statusArea = new VerticalPanel();
@@ -201,14 +203,15 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 				// Release locks according to state.
 				UiState state = uiStates.get(indOfTab);
 				if (state == UiState.LOCKED ||
-						state == UiState.LOCKING ||
-						state == UiState.REQUESTING) {
+						state == UiState.LOCKING) {
 					
 					LockedDocument lockedDoc = new LockedDocument(null, null,
 							tabKeys.get(indOfTab),
 							tabTitles.get(indOfTab).getValue(),
 							tabContents.get(indOfTab).getHTML());
 					releaser.releaseLock(lockedDoc);
+				} else if (state == UiState.REQUESTING) {
+					unrequestor.unrequestDocument(tabKeys.get(indOfTab));
 				}
 				// Update UI and corresponding variables.
 				removeTabAtInd(indOfTab);
@@ -252,7 +255,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		      		// Doc is not ready to be locked. The rest of the string is
 		      		// the number of people in front of us in the queue.
 		      		String restOfString = message.substring(1);
-		      		int delimiter = restOfString.indexOf(':');
+		      		int delimiter = restOfString.indexOf(CollaboratorServiceImpl.DELIMITER);
 		      		int numPeopleLeft = Integer.parseInt(restOfString.substring(0, delimiter));
 		      		String docId = restOfString.substring(delimiter + 1);
 		      		docId = docId.replaceAll("\\s", "");
@@ -378,6 +381,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		tabTitles.remove(i);
 		tabContents.remove(i);
 		uiStates.remove(i);
+		// TODO: remove Annie's ArrayList of integers with num of people in queue
 		// Update tab panel
 		tp.remove(i);
 		int tabCount = tb.getTabCount();

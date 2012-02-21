@@ -20,6 +20,9 @@ public interface CollaboratorServiceAsync {
 	void requestDocument(String documentKey, String token,
 			AsyncCallback<Integer> callback);
 	
+	void unrequestDocument(String documentKey, String token,
+			AsyncCallback<Void> callback);
+	
 	void lockDocument(String documentKey, String token,
 			AsyncCallback<LockedDocument> callback);
 

@@ -7,9 +7,6 @@ import com.google.gwt.user.client.rpc.AsyncCallback;
 
 import edu.caltech.cs141b.hw2.gwt.collab.shared.DocumentMetadata;
 
-/**
- * Used in conjunction with <code>CollaboratorService.getDocumentList()</code>.
- */
 public class DocLister implements AsyncCallback<List<DocumentMetadata>> {
 	
 	private Collaborator collaborator;

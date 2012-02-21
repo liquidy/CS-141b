@@ -6,9 +6,6 @@ import com.google.gwt.user.client.rpc.AsyncCallback;
 import edu.caltech.cs141b.hw2.gwt.collab.shared.LockUnavailable;
 import edu.caltech.cs141b.hw2.gwt.collab.shared.LockedDocument;
 
-/**
- * Used in conjunction with <code>CollaboratorService.lockDocument()</code>.
- */
 public class DocLocker implements AsyncCallback<LockedDocument> {
 	
 	private Collaborator collaborator;

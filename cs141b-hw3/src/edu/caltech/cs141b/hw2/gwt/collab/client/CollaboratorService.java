@@ -19,6 +19,8 @@ public interface CollaboratorService extends RemoteService {
 	
 	/**
 	 * Sets up a channel for the client that called this method.
+	 * 
+	 * @return token to uniquely identify the client
 	 */
 	String setUpChannel();
 	
@@ -30,13 +32,21 @@ public interface CollaboratorService extends RemoteService {
 	List<DocumentMetadata> getDocumentList();
 	
 	/**
-	 * Used to lock an existing document for editing.
+	 * Request a particular document to be locked. (Get in a queue.)
 	 * 
 	 * @param documentKey the key of the document to lock
 	 * @param token the token that identifies the client
 	 * @return an Integer holding the number of people in front in the queue
 	 */
 	Integer requestDocument(String documentKey, String token);
+	
+	/**
+	 * Used to remove the client from the queue for a particular doc.
+	 * 
+	 * @param documentKey the key of the document to lock
+	 * @param token the token that identifies the client
+	 */
+	void unrequestDocument(String documentKey, String token);
 	
 	/**
 	 * Used to lock an existing document for editing.

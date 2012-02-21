@@ -1,5 +1,7 @@
 package edu.caltech.cs141b.hw2.gwt.collab.server;
 
+import static com.google.appengine.api.taskqueue.TaskOptions.Builder.withCountdownMillis;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -20,6 +22,8 @@ import com.google.appengine.api.channel.ChannelService;
 import com.google.appengine.api.channel.ChannelServiceFactory;
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
+import com.google.appengine.api.taskqueue.DeferredTask;
+import com.google.appengine.api.taskqueue.QueueFactory;
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 
 import edu.caltech.cs141b.hw2.gwt.collab.client.CollaboratorService;
@@ -38,6 +42,7 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
                                      implements CollaboratorService {
 	
 	public static final int LOCK_TIMEOUT = 30;     // Seconds
+	public static final String DELIMITER = "_";    // TODO: "\u001F"
 	
 	private Hashtable<String, String> tokenToClient = 
 			new Hashtable<String, String>();
@@ -101,13 +106,42 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 		}
 		return numPeopleInFront;
 	}
+	
+	@Override
+	public void unrequestDocument(String documentKey, String token) {
+		// Remove the client from the timeout queue.
+		removeFromTaskQueue(documentKey, token);
+		
+		// Remove clientId from the document queue.
+		String clientToRemove = tokenToClient.get(token);
+		Object queueLock = docToQueueLocks.get(documentKey);
+		synchronized (queueLock) {
+			Queue<String> clientIds = docToQueue.get(documentKey);
+			Iterator<String> clientsItr = clientIds.iterator();
+			int i = 0;
+			while (clientsItr.hasNext()) {
+				String clientId = clientsItr.next();
+				if (clientId.equals(clientToRemove)) {
+					clientsItr.remove();
+					break;
+				}
+				i++;
+			}
+			// Notify the rest of the people that they have moved up one position.
+			while (clientsItr.hasNext()) {
+				String clientId = clientsItr.next();
+				sendMessage(clientId, Messages.CODE_LOCK_NOT_READY + 
+						String.valueOf(i) + DELIMITER + documentKey);
+				i++;
+			}
+		}
+	}
 
 	@Override
 	public LockedDocument lockDocument(String documentKey, String token)
 			throws LockUnavailable {
 		
 		// Check the queue to see that we're not cutting someone in line.
-		lazyInstantiationsForDoc(documentKey);
 		Object queueLock = docToQueueLocks.get(documentKey);
 		synchronized (queueLock) {
 			Queue<String> clientIds = docToQueue.get(documentKey);
@@ -160,9 +194,14 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 			txn.commit();
 			
 			String keyStr = KeyFactory.keyToString(persistedDoc.getKey());
-			// TODO: Set up timer so that after a timeout period, we just move onto the
-			// next person in the queue.
-//			timer.schedule(new DocLockNotifyTask(this, keyStr), LOCK_TIMEOUT * 1000);
+			// Set up scheduled task so that after a timeout period, we just
+			// move onto the next person in the queue.
+			String taskName = tokenToClient.get(token) + DELIMITER + keyStr;
+			QueueFactory.getDefaultQueue().add(
+					withCountdownMillis(LOCK_TIMEOUT * 1000)
+					.payload(new LockExpirationTaskAAA(keyStr))
+					.taskName(taskName));
+			// TODO: also schedule this for when a user does not grab the lock in the specified time.
 			
 			return new LockedDocument(
 	        persistedDoc.getLockedBy(), 
@@ -214,6 +253,9 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 		Key key = null;
 		if (keyStr != null) {
 			key = KeyFactory.stringToKey(keyStr);
+			
+			// Remove the client from the timeout queue.
+			removeFromTaskQueue(keyStr, token);
 		}
 		
 		// Persist Document JDO.
@@ -284,6 +326,9 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 			return;
 		}
 		
+		// Remove the client from the timeout queue.
+		removeFromTaskQueue(keyStr, token);
+		
 		PersistenceManager pm = PMF.get().getPersistenceManager();
 		Transaction txn = pm.currentTransaction();
 		try {
@@ -343,14 +388,11 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 				while (clientsItr.hasNext()) {
 					String clientId = clientsItr.next();
 					sendMessage(clientId, Messages.CODE_LOCK_NOT_READY + 
-							String.valueOf(i) + ":" + documentKey);
+							String.valueOf(i) + DELIMITER + documentKey);
 					i++;
 				}
 			}
 		}
-		
-		// TODO: Also cancel the scheduled timeout task (of class DocLockNotifyTask).
-		
 	}
 	
 	private void sendMessage(String clientId, String message) {
@@ -362,12 +404,36 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 		if (documentKey == null || documentKey.isEmpty())
 			return;
 		
-		// Lazy instantiation for the queues and locks.
-		synchronized (instantiationLock) {
-			if (!docToQueue.containsKey(documentKey)) {
-				docToQueue.put(documentKey, new ArrayDeque<String>());
-				docToQueueLocks.put(documentKey, new Object());
+		// Lazy instantiation for the queues and corresponding locks.
+		if (!docToQueue.containsKey(documentKey)) {
+			synchronized (instantiationLock) {
+				if (!docToQueue.containsKey(documentKey)) {
+					docToQueue.put(documentKey, new ArrayDeque<String>());
+					docToQueueLocks.put(documentKey, new Object());
+				}
 			}
 		}
 	}
+	
+	private void removeFromTaskQueue(String documentKey, String token) {
+		QueueFactory.getDefaultQueue()
+			.deleteTask(tokenToClient.get(token) + DELIMITER + documentKey);
+	}
+	
+	public class LockExpirationTaskAAA implements DeferredTask {
+		
+		private String documentKey;
+		
+		public LockExpirationTaskAAA() {}
+		
+		public LockExpirationTaskAAA(String documentKey) {
+			this.documentKey = documentKey;
+		}
+
+		@Override
+		public void run() {
+			
+		}
+	}
+
 }
