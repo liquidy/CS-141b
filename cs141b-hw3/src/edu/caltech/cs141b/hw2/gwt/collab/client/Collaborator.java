@@ -23,6 +23,7 @@ import com.google.gwt.user.client.ui.RichTextArea;
 import com.google.gwt.user.client.ui.TabBar;
 import com.google.gwt.user.client.ui.TabPanel;
 import com.google.gwt.user.client.ui.TextBox;
+import com.google.gwt.user.client.ui.ToggleButton;
 import com.google.gwt.user.client.ui.VerticalPanel;
 
 import edu.caltech.cs141b.hw2.gwt.collab.server.CollaboratorServiceImpl;
@@ -35,6 +36,10 @@ import edu.caltech.cs141b.hw2.gwt.collab.shared.Messages;
 public class Collaborator extends Composite implements ClickHandler, ChangeHandler {
 	
 	public static final boolean SHOW_CONSOLE = true;
+	public boolean simulating = false;
+	public int eatingTime = 100;
+	public int hungryTime = 100;
+	public int thinkingTime = 100;
 	
 	protected CollaboratorServiceAsync collabService;
 	
@@ -48,12 +53,19 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	// For displaying document information and editing document content.
 	protected PushButton refreshDoc = new PushButton(
 			new Image("images/refresh.png"));
-	protected PushButton lockButton = new PushButton(
+	protected PushButton lockButtonUnlocked = new PushButton(
 			new Image("images/locked.png"));
+	protected PushButton lockButtonLocked = new PushButton(
+      new Image("images/unlocked.png"));
+	protected PushButton lockButtonRequesting = new PushButton(
+      new Image("images/loading.gif"));
 	protected PushButton saveButton = new PushButton(
 			new Image("images/save.png"));
 	protected PushButton closeButton = new PushButton(
 			new Image("images/close.png"));
+	protected ToggleButton simulateButton = new ToggleButton(
+      new Image("images/play_button.png"),
+      new Image("images/pause_button.gif"));
 	
 	// Callback objects.
 	protected DocLister lister = new DocLister(this);
@@ -69,11 +81,13 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	// Status tracking.
 	private VerticalPanel statusArea = new VerticalPanel();
 	
+	private HTML docStatus = new HTML();
+	
+	protected HorizontalPanel hp = new HorizontalPanel();
 	private TabPanel tp = new TabPanel();
 	private TabBar tb = tp.getTabBar();
 	
 	// Variables for keeping track of current states of the application.
-	protected int currentTabInd = -1;
 	protected ArrayList<String> tabKeys = new ArrayList<String>();
 	protected ArrayList<RichTextArea> tabContents = new ArrayList<RichTextArea>();
 	protected ArrayList<TextBox> tabTitles = new ArrayList<TextBox>();
@@ -125,12 +139,13 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		VerticalPanel rightColVp = new VerticalPanel();
 
 		// Create horizontal panel that holds the document-specific buttons.
-		HorizontalPanel hp = new HorizontalPanel();
 		hp.setSpacing(10);
 		hp.add(refreshDoc);
-		hp.add(lockButton);
+		hp.add(lockButtonUnlocked);
 		hp.add(saveButton);
 		hp.add(closeButton);
+		hp.add(simulateButton);
+		hp.add(docStatus);
 		rightColVp.add(hp);
 		
 		// Add tab panel to rightColVp.
@@ -149,7 +164,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		tp.addSelectionHandler(new SelectionHandler<Integer>() {
 			public void onSelection(SelectionEvent<Integer> event) {
 				// Changes UI to update to the current selected tab.
-				currentTabInd = event.getSelectedItem();
+				int currentTabInd = tb.getSelectedTab();
 				setUiToState(uiStates.get(currentTabInd));
 			}
 		});
@@ -157,9 +172,12 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		refreshList.addClickHandler(this);
 		createNew.addClickHandler(this);
 		refreshDoc.addClickHandler(this);
-		lockButton.addClickHandler(this);
+		lockButtonUnlocked.addClickHandler(this);
+		lockButtonLocked.addClickHandler(this);
+		lockButtonRequesting.addClickHandler(this);
 		saveButton.addClickHandler(this);
 		closeButton.addClickHandler(this);
+		simulateButton.addClickHandler(this);
 		
 		documentList.addChangeHandler(this);
 		documentList.setVisibleItemCount(10);
@@ -177,44 +195,51 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	 */
 	@Override
 	public void onClick(ClickEvent event) {
-		if (event.getSource().equals(refreshList)) {
+		Object source = event.getSource();
+		if (source.equals(refreshList)) {
 			lister.getDocumentList();
-		} else if (event.getSource().equals(createNew)) {
+		} else if (source.equals(createNew)) {
 			creator.createDocument();
-		} else if (event.getSource().equals(refreshDoc)) {
+		} else if (source.equals(refreshDoc)) {
 			if (tabIsSelected()) {
 				reader.getDocument(tabKeys.get(tb.getSelectedTab()));
 			}
-		} else if (event.getSource().equals(lockButton)) {
+		} else if (source.equals(lockButtonUnlocked)) {
 			if (tabIsSelected()) {
 				requestor.requestDocument(tabKeys.get(tb.getSelectedTab()));
 			}
-		} else if (event.getSource().equals(saveButton)) {
+		} else if (source.equals(lockButtonLocked)) {
+			// TODO: lock button needs to be
+			if (tabIsSelected()) {
+				requestor.requestDocument(tabKeys.get(tb.getSelectedTab()));
+			}
+		} else if (source.equals(saveButton)) {
 			if (tabIsSelected()) {
 				// Make async call to save the document (also updates UI).
+				int currentTabInd = tb.getSelectedTab();
 				LockedDocument lockedDoc = new LockedDocument(null, null,
 						tabKeys.get(currentTabInd), tabTitles.get(currentTabInd).getValue(), 
 						tabContents.get(currentTabInd).getHTML());
 				saver.saveDocument(lockedDoc);
 			}
-		} else if (event.getSource().equals(closeButton)) {
-			int indOfTab = tb.getSelectedTab();
-			if (indOfTab != -1) {
+		} else if (source.equals(closeButton)) {
+			if (tabIsSelected()) {
+				int currentTabInd = tb.getSelectedTab();
 				// Release locks according to state.
-				UiState state = uiStates.get(indOfTab);
+				UiState state = uiStates.get(currentTabInd);
 				if (state == UiState.LOCKED ||
 						state == UiState.LOCKING) {
 					
 					LockedDocument lockedDoc = new LockedDocument(null, null,
-							tabKeys.get(indOfTab),
-							tabTitles.get(indOfTab).getValue(),
-							tabContents.get(indOfTab).getHTML());
+							tabKeys.get(currentTabInd),
+							tabTitles.get(currentTabInd).getValue(),
+							tabContents.get(currentTabInd).getHTML());
 					releaser.releaseLock(lockedDoc);
 				} else if (state == UiState.REQUESTING) {
-					unrequestor.unrequestDocument(tabKeys.get(indOfTab));
+					unrequestor.unrequestDocument(tabKeys.get(currentTabInd));
 				}
 				// Update UI and corresponding variables.
-				removeTabAtInd(indOfTab);
+				removeTabAtInd(currentTabInd);
 			}
 		}
 	}
@@ -304,6 +329,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 			tabTitles.get(indResult).setValue(title);
 			tabContents.get(indResult).setHTML(contents);
 			uiStates.set(indResult, state);
+			int currentTabInd = tb.getSelectedTab();
 			if (key.equals(tabKeys.get(currentTabInd))) {
 				setUiToState(state);
 			}
@@ -318,6 +344,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		int indResult = tabKeys.indexOf(key);
 		if (indResult != -1) {
 			uiStates.set(indResult, state);
+			int currentTabInd = tb.getSelectedTab();
 			if (key.equals(tabKeys.get(currentTabInd))) {
 				setUiToState(state);
 			}
@@ -333,13 +360,46 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	 */
 	protected void setUiToState(UiState state) {
 		refreshDoc.setEnabled(state.refreshDocEnabled);
-		lockButton.setEnabled(state.lockButtonEnabled);
+		lockButtonUnlocked.setEnabled(state.lockButtonUnlockedEnabled);
+		lockButtonLocked.setEnabled(state.lockButtonLockedEnabled);
 		saveButton.setEnabled(state.saveButtonEnabled);
 		closeButton.setEnabled(state.closeButtonEnabled);
 		if (tabIsSelected()) {
+			int currentTabInd = tb.getSelectedTab();
 			tabTitles.get(currentTabInd).setEnabled(state.titleEnabled);
 			tabContents.get(currentTabInd).setEnabled(state.contentsEnabled);
 		}
+		// Handle 
+		String statusString = null;
+//		if (state.lockState == UiState.LockState.LOCKED) {
+//			statusString = "<br>Lock obtained";
+//			/* if previous state was loading, then
+//			 * update the button and the ui status 
+//			 */
+//			if (loadingButtonDisplayed) {
+//				hp.remove(loadingButton);
+//				hp.insert(lockButton, 1);
+//				loadingButtonDisplayed = false;
+//			}
+//		} else if (status == -1) {
+//			statusString = "<br>No lock";
+//			/* if the wait for lock is canceled */
+//			if (loadingButtonDisplayed){
+//				hp.remove(loadingButton);     
+//				hp.insert(lockButton, 1);
+//				loadingButtonDisplayed = false;
+//			}
+//		} else {
+//			statusString = "<br>Position " + status + " in line";
+//			/* if not already loading */
+//			if (!(loadingButtonDisplayed)){
+//				hp.remove(lockButton);
+//				hp.insert(loadingButton, 1);
+//			}
+//			loadingButtonDisplayed = true;
+//			/* otherwise, was already loading anyway */
+//		}
+//    docStatus.setHTML(statusString);
 	}
 	
 	/**
@@ -360,7 +420,6 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 			TextBox title) {
 		
 		// Update local variables.
-		currentTabInd = tb.getTabCount();
 		tabKeys.add(key);
 		tabTitles.add(title);
 		tabContents.add(contents);
@@ -382,6 +441,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		tabContents.remove(i);
 		uiStates.remove(i);
 		// TODO: remove Annie's ArrayList of integers with num of people in queue
+		
 		// Update tab panel
 		tp.remove(i);
 		int tabCount = tb.getTabCount();
@@ -392,12 +452,12 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 				tb.selectTab(i);
 			}
 		} else {
-			currentTabInd = -1;
 			setUiToState(UiState.NOT_VIEWING);
 		}
 	}
 	
 	private boolean tabIsSelected() {
+		int currentTabInd = tb.getSelectedTab();
 		return currentTabInd >= 0 && currentTabInd < tabKeys.size();
 	}
 }

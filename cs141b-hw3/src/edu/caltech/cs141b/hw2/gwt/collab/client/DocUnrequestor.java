@@ -13,6 +13,7 @@ public class DocUnrequestor implements AsyncCallback<Void> {
 	
 	public void unrequestDocument(String key) {
 		collaborator.statusUpdate("Unrequesting document: " + key);
+		collaborator.updateVarsAndUi(key, UiState.LOCKING);
 		collaborator.collabService.unrequestDocument(
 				key, collaborator.channelToken, this);
 	}
@@ -21,11 +22,14 @@ public class DocUnrequestor implements AsyncCallback<Void> {
 	public void onFailure(Throwable caught) {
 		collaborator.statusUpdate("Error leaving queue.");
 		GWT.log("Error leaving queue.", caught);
+		// TODO: Implement a general Exception class for this project so that
+		// all exceptions coming back will have the documentKey in them.
 	}
 
 	@Override
 	public void onSuccess(Void result) {
 		collaborator.statusUpdate("Left queue for document.");
+		collaborator.updateVarsAndUi(key, UiState.LOCKING);
 	}
 }
 

@@ -40,7 +40,6 @@ public class DocRequestor implements AsyncCallback<Integer> {
 					+ " with message: " + caught.getMessage());
 			GWT.log("Error getting document lock.", caught);
 		}
-		
 	}
 
 	@Override

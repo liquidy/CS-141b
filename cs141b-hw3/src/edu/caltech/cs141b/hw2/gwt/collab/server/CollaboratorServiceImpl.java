@@ -22,7 +22,6 @@ import com.google.appengine.api.channel.ChannelService;
 import com.google.appengine.api.channel.ChannelServiceFactory;
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
-import com.google.appengine.api.taskqueue.DeferredTask;
 import com.google.appengine.api.taskqueue.QueueFactory;
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 
@@ -42,7 +41,7 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
                                      implements CollaboratorService {
 	
 	public static final int LOCK_TIMEOUT = 30;     // Seconds
-	public static final String DELIMITER = "_";    // TODO: "\u001F"
+	public static final String DELIMITER = "_";
 	
 	private Hashtable<String, String> tokenToClient = 
 			new Hashtable<String, String>();
@@ -199,7 +198,7 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 			String taskName = tokenToClient.get(token) + DELIMITER + keyStr;
 			QueueFactory.getDefaultQueue().add(
 					withCountdownMillis(LOCK_TIMEOUT * 1000)
-					.payload(new LockExpirationTaskAAA(keyStr))
+					.payload(new LockExpirationTask(keyStr))
 					.taskName(taskName));
 			// TODO: also schedule this for when a user does not grab the lock in the specified time.
 			
@@ -221,14 +220,9 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 	public UnlockedDocument getDocument(String documentKey) {
 		Document persistedDoc = null;
 		PersistenceManager pm = PMF.get().getPersistenceManager();
-		Transaction txn = pm.currentTransaction();
 		try {
-			txn.begin();
-			
 			Key key = KeyFactory.stringToKey(documentKey);
 			persistedDoc = pm.getObjectById(Document.class, key);
-	    
-			txn.commit();
 			
 			if (persistedDoc == null) {
 				return null;
@@ -237,9 +231,6 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 				        documentKey, persistedDoc.getTitle(), persistedDoc.getContents());
 			}
 		} finally {
-			if (txn.isActive()) {
-				txn.rollback();
-			}
 			pm.close();
 		}
 	}
@@ -419,21 +410,4 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 		QueueFactory.getDefaultQueue()
 			.deleteTask(tokenToClient.get(token) + DELIMITER + documentKey);
 	}
-	
-	public class LockExpirationTaskAAA implements DeferredTask {
-		
-		private String documentKey;
-		
-		public LockExpirationTaskAAA() {}
-		
-		public LockExpirationTaskAAA(String documentKey) {
-			this.documentKey = documentKey;
-		}
-
-		@Override
-		public void run() {
-			
-		}
-	}
-
 }
