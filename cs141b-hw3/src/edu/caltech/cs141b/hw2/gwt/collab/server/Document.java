@@ -8,6 +8,7 @@ import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
 
 import com.google.appengine.api.datastore.Key;
+import com.google.appengine.api.datastore.Text;
 
 
 @PersistenceCapable
@@ -20,7 +21,7 @@ public class Document {
 	private String title = null;
 	
 	@Persistent
-	private String contents = null;
+	private Text contents = null;
 	
 	@Persistent
 	private String lockedBy = null;
@@ -28,7 +29,7 @@ public class Document {
 	@Persistent
 	private Date lockedUntil = null;
 	
-	public Document(String title, String contents, String lockedBy, Date lockedUntil) {
+	public Document(String title, Text contents, String lockedBy, Date lockedUntil) {
 		this.title = title;
 		this.contents = contents;
 		this.lockedBy = lockedBy;
@@ -47,11 +48,11 @@ public class Document {
 		this.title = title;
 	}
 
-	public String getContents() {
+	public Text getContents() {
 		return contents;
 	}
 	
-	public void setContents(String contents) {
+	public void setContents(Text contents) {
 		this.contents = contents;
 	}
 	

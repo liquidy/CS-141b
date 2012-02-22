@@ -16,7 +16,7 @@ public class DocLocker implements AsyncCallback<LockedDocument> {
 	
 	public void lockDocument(String key) {
 		collaborator.statusUpdate("Attempting to lock document.");
-		collaborator.updateVarsAndUi(key, UiState.LOCKING);
+		collaborator.updateVarsAndUi(key, UiState.REQUESTING);
 		collaborator.collabService.lockDocument(key, collaborator.channelToken, this);
 	}
 
@@ -44,22 +44,14 @@ public class DocLocker implements AsyncCallback<LockedDocument> {
 	@Override
 	public void onSuccess(LockedDocument result) {
 		collaborator.statusUpdate("Lock retrieved for document.");
-		gotDoc(result);
-	}
-	
-	/**
-	 * Generalized so that it can be used elsewhere.  In particular, when
-	 * creating a new document, a locked document is simulated by calling this
-	 * function with a new LockedDocument object without the lock primitives.
-	 * 
-	 * @param result
-	 */
-	protected void gotDoc(LockedDocument result) {
 		collaborator.updateVarsAndUi(result.getKey(),
 				result.getTitle(),
 				result.getContents(),
 				UiState.LOCKED);
+		
+		if (collaborator.simulating) {
+			collaborator.simulateEating();
+		}
 	}
-	
 }
 

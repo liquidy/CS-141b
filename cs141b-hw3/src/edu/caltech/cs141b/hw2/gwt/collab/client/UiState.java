@@ -7,45 +7,54 @@ package edu.caltech.cs141b.hw2.gwt.collab.client;
  */
 public enum UiState {
 	/**
-	 * Format is (refreshDoc, lockButtonUnlocked, lockButtonLocked, saveButton, 
-	 * closeButton, title, contents, lockButtonState).
+	 * Format is (refreshDoc, lockButtonUnlocked, lockButtonLocked,
+	 * lockButtonRequesting, saveButton, closeButton, simulateButton,
+	 * title, contents, lockButtonState).
 	 */
-	NOT_VIEWING (false, false, false, false, false, false, false, LockState.UNLOCKED),
-	VIEWING (true, true, false, false, true, false, false, LockState.UNLOCKED),
-	LOCKED (false, false, true, true, true, true, true, LockState.LOCKED),
-	LOCKING (false, false, false, false, false, false, false, LockState.UNLOCKED),
-	REQUESTING (false, false, false, false, true, false, false, LockState.REQUESTING),
-	SAVING (false, false, false, false, false, false, false, LockState.LOCKED);
+	NOT_VIEWING (false, false, false, false, false, false, false, false, false, LockButton.UNLOCKED),
+	VIEWING (true, true, false, false, false, true, true, false, false, LockButton.UNLOCKED),
+	REQUESTING (false, false, false, true, false, true, false, false, false, LockButton.REQUESTING),
+	LOCKING (false, false, false, false, false, false, false, false, false, LockButton.UNLOCKED),
+	LOCKED (false, false, true, false, true, true, false, true, true, LockButton.LOCKED),
+	RELEASING (false, false, false, false, false, false, false, false, false, LockButton.LOCKED),
+	SAVING (false, false, false, false, false, false, false, false, false, LockButton.LOCKED),
+	SIMULATING (false, false, false, false, false, false, true, false, false, LockButton.UNLOCKED);
 	
 	public boolean refreshDocEnabled;
 	public boolean lockButtonUnlockedEnabled;
 	public boolean lockButtonLockedEnabled;
+	public boolean lockButtonRequestingEnabled;
 	public boolean saveButtonEnabled;
 	public boolean closeButtonEnabled;
+	public boolean simulateButtonEnabled;
 	public boolean titleEnabled;
 	public boolean contentsEnabled;
-	public LockState lockState;
+	public LockButton lockState;
 	
 	UiState(boolean refreshDocEnabled,
 			boolean lockButtonUnlockedEnabled,
 			boolean lockButtonLockedEnabled,
+			boolean lockButtonRequestingEnabled,
 			boolean saveButtonEnabled,
 			boolean closeButtonEnabled,
+			boolean simulateButtonEnabled,
 			boolean titleEnabled,
 			boolean contentsEnabled,
-			LockState lockState) {
+			LockButton lockState) {
 		
 		this.refreshDocEnabled = refreshDocEnabled;
 		this.lockButtonUnlockedEnabled = lockButtonUnlockedEnabled;
 		this.lockButtonLockedEnabled = lockButtonLockedEnabled;
+		this.lockButtonRequestingEnabled = lockButtonRequestingEnabled;
 		this.saveButtonEnabled = saveButtonEnabled;
 		this.closeButtonEnabled = closeButtonEnabled;
+		this.simulateButtonEnabled = simulateButtonEnabled;
 		this.titleEnabled = titleEnabled;
 		this.contentsEnabled = contentsEnabled;
 		this.lockState = lockState;
 	}
 	
-	public enum LockState {
+	public enum LockButton {
 		LOCKED,
 		UNLOCKED,
 		REQUESTING;

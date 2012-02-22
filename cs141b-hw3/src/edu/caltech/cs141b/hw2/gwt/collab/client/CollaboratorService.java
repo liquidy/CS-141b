@@ -5,6 +5,7 @@ import java.util.List;
 import com.google.gwt.user.client.rpc.RemoteService;
 import com.google.gwt.user.client.rpc.RemoteServiceRelativePath;
 
+import edu.caltech.cs141b.hw2.gwt.collab.shared.DocRequestorResult;
 import edu.caltech.cs141b.hw2.gwt.collab.shared.DocumentMetadata;
 import edu.caltech.cs141b.hw2.gwt.collab.shared.LockExpired;
 import edu.caltech.cs141b.hw2.gwt.collab.shared.LockUnavailable;
@@ -36,17 +37,18 @@ public interface CollaboratorService extends RemoteService {
 	 * 
 	 * @param documentKey the key of the document to lock
 	 * @param token the token that identifies the client
-	 * @return an Integer holding the number of people in front in the queue
+	 * @return DocRequestorResult with documentKey and numPeopleLeft
 	 */
-	Integer requestDocument(String documentKey, String token);
+	DocRequestorResult requestDocument(String documentKey, String token);
 	
 	/**
 	 * Used to remove the client from the queue for a particular doc.
 	 * 
 	 * @param documentKey the key of the document to lock
 	 * @param token the token that identifies the client
+	 * @return key (String) of the document that was unrequested
 	 */
-	void unrequestDocument(String documentKey, String token);
+	String unrequestDocument(String documentKey, String token);
 	
 	/**
 	 * Used to lock an existing document for editing.
@@ -88,10 +90,18 @@ public interface CollaboratorService extends RemoteService {
 	 *         modifications made to the document properties in this case are
 	 *         ignored
 	 * @param token the token that identifies the client
+	 * @return the key of the document to lock
 	 * @throws LockExpired if the locking primitives in the supplied
 	 *         LockedDocument object cannot be used to release the lock
 	 */
-	void releaseLock(LockedDocument doc, String token) throws LockExpired;
+	String releaseLock(LockedDocument doc, String token) throws LockExpired;
 	
+	/**
+	 * Used to pass the token from the person in the front of the queue
+	 * to the next person in line.
+	 * 
+	 * @param docKey document key
+	 */
+	void pollDocQueue(String docKey);
 }
 

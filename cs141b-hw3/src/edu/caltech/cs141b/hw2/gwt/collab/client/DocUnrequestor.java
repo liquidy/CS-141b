@@ -3,7 +3,7 @@ package edu.caltech.cs141b.hw2.gwt.collab.client;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 
-public class DocUnrequestor implements AsyncCallback<Void> {
+public class DocUnrequestor implements AsyncCallback<String> {
 	
 	private Collaborator collaborator;
 	
@@ -11,11 +11,11 @@ public class DocUnrequestor implements AsyncCallback<Void> {
 		this.collaborator = collaborator;
 	}
 	
-	public void unrequestDocument(String key) {
-		collaborator.statusUpdate("Unrequesting document: " + key);
-		collaborator.updateVarsAndUi(key, UiState.LOCKING);
+	public void unrequestDocument(String docKey) {
+		collaborator.statusUpdate("Unrequesting document: " + docKey);
+		collaborator.updateVarsAndUi(docKey, UiState.LOCKING);
 		collaborator.collabService.unrequestDocument(
-				key, collaborator.channelToken, this);
+				docKey, collaborator.channelToken, this);
 	}
 
 	@Override
@@ -27,9 +27,9 @@ public class DocUnrequestor implements AsyncCallback<Void> {
 	}
 
 	@Override
-	public void onSuccess(Void result) {
+	public void onSuccess(String docKey) {
 		collaborator.statusUpdate("Left queue for document.");
-		collaborator.updateVarsAndUi(key, UiState.LOCKING);
+		collaborator.updateVarsAndUi(docKey, UiState.VIEWING);
 	}
 }
 

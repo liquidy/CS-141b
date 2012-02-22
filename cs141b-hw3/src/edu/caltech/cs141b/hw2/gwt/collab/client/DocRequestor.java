@@ -3,10 +3,10 @@ package edu.caltech.cs141b.hw2.gwt.collab.client;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 
+import edu.caltech.cs141b.hw2.gwt.collab.shared.DocRequestorResult;
 import edu.caltech.cs141b.hw2.gwt.collab.shared.LockUnavailable;
-import edu.caltech.cs141b.hw2.gwt.collab.shared.LockedDocument;
 
-public class DocRequestor implements AsyncCallback<Integer> {
+public class DocRequestor implements AsyncCallback<DocRequestorResult> {
 	
 	private Collaborator collaborator;
 	
@@ -43,28 +43,21 @@ public class DocRequestor implements AsyncCallback<Integer> {
 	}
 
 	@Override
-	public void onSuccess(Integer queueSize) {
-		if (queueSize > 0) {
-			collaborator.statusUpdate("There are " + queueSize + " people ahead of" +
+	public void onSuccess(DocRequestorResult result) {
+		int numPeopleLeft = result.getNumPeopleLeft();
+		if (numPeopleLeft > 0) {
+			collaborator.statusUpdate("There are " + numPeopleLeft + " people ahead of" +
 					" you waiting to lock the document.");
 		}
 		
-		// TODO: Update data structures + status panel. 
+		// Update data structures + queue status panel.
+		String docKey = result.getDocKey();
+		int indOfDoc = collaborator.tabKeys.indexOf(docKey);
+		collaborator.tabQueueLengths.set(indOfDoc, numPeopleLeft);
+		if (collaborator.tabIsSelected() && indOfDoc != -1) {
+			collaborator.tabQueueLengths.set(indOfDoc, numPeopleLeft);
+			collaborator.queueStatus.setHTML("<br />Position " +
+					numPeopleLeft + " in line");
+		}
 	}
-	
-	/**
-	 * Generalized so that it can be used elsewhere.  In particular, when
-	 * creating a new document, a locked document is simulated by calling this
-	 * function with a new LockedDocument object without the lock primitives.
-	 * 
-	 * @param result
-	 */
-	protected void gotDoc(LockedDocument result) {
-		collaborator.updateVarsAndUi(result.getKey(),
-				result.getTitle(),
-				result.getContents(),
-				UiState.LOCKED);
-	}
-	
 }
-

@@ -6,7 +6,7 @@ import com.google.gwt.user.client.rpc.AsyncCallback;
 import edu.caltech.cs141b.hw2.gwt.collab.shared.LockExpired;
 import edu.caltech.cs141b.hw2.gwt.collab.shared.LockedDocument;
 
-public class DocReleaser implements AsyncCallback<Void> {
+public class DocReleaser implements AsyncCallback<String> {
 	
 	private Collaborator collaborator;
 	
@@ -17,6 +17,7 @@ public class DocReleaser implements AsyncCallback<Void> {
 	public void releaseLock(LockedDocument lockedDoc) {
 		collaborator.statusUpdate("Releasing lock on '" + 
 				lockedDoc.getTitle() + "'.");
+		collaborator.updateVarsAndUi(lockedDoc.getKey(), UiState.RELEASING);
 		collaborator.collabService.releaseLock(
 				lockedDoc, collaborator.channelToken, this);
 	}
@@ -24,7 +25,9 @@ public class DocReleaser implements AsyncCallback<Void> {
 	@Override
 	public void onFailure(Throwable caught) {
 		if (caught instanceof LockExpired) {
+			LockExpired caughtEx = (LockExpired) caught;
 			collaborator.statusUpdate("Lock had already expired; release failed.");
+			collaborator.updateVarsAndUi(caughtEx.getKey(), UiState.VIEWING);
 		} else {
 			collaborator.statusUpdate("Error releasing document"
 					+ "; caught exception " + caught.getClass()
@@ -34,8 +37,9 @@ public class DocReleaser implements AsyncCallback<Void> {
 	}
 
 	@Override
-	public void onSuccess(Void result) {
+	public void onSuccess(String docKey) {
 		collaborator.statusUpdate("Document lock released.");
+		collaborator.updateVarsAndUi(docKey, UiState.VIEWING);
 	}
 	
 }

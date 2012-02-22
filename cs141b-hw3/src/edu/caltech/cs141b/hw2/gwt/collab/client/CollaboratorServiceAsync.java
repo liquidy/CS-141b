@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.google.gwt.user.client.rpc.AsyncCallback;
 
+import edu.caltech.cs141b.hw2.gwt.collab.shared.DocRequestorResult;
 import edu.caltech.cs141b.hw2.gwt.collab.shared.DocumentMetadata;
 import edu.caltech.cs141b.hw2.gwt.collab.shared.LockedDocument;
 import edu.caltech.cs141b.hw2.gwt.collab.shared.UnlockedDocument;
@@ -18,10 +19,10 @@ public interface CollaboratorServiceAsync {
 	void getDocumentList(AsyncCallback<List<DocumentMetadata>> callback);
 
 	void requestDocument(String documentKey, String token,
-			AsyncCallback<Integer> callback);
+			AsyncCallback<DocRequestorResult> callback);
 	
 	void unrequestDocument(String documentKey, String token,
-			AsyncCallback<Void> callback);
+			AsyncCallback<String> callback);
 	
 	void lockDocument(String documentKey, String token,
 			AsyncCallback<LockedDocument> callback);
@@ -33,7 +34,9 @@ public interface CollaboratorServiceAsync {
 			AsyncCallback<UnlockedDocument> callback);
 
 	void releaseLock(LockedDocument doc, String token,
-			AsyncCallback<Void> callback);
+			AsyncCallback<String> callback);
+	
+	void pollDocQueue(String docKey, AsyncCallback<Void> callback);
 
 }
 

@@ -22,10 +22,12 @@ import com.google.appengine.api.channel.ChannelService;
 import com.google.appengine.api.channel.ChannelServiceFactory;
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
+import com.google.appengine.api.datastore.Text;
 import com.google.appengine.api.taskqueue.QueueFactory;
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 
 import edu.caltech.cs141b.hw2.gwt.collab.client.CollaboratorService;
+import edu.caltech.cs141b.hw2.gwt.collab.shared.DocRequestorResult;
 import edu.caltech.cs141b.hw2.gwt.collab.shared.DocumentMetadata;
 import edu.caltech.cs141b.hw2.gwt.collab.shared.LockExpired;
 import edu.caltech.cs141b.hw2.gwt.collab.shared.LockUnavailable;
@@ -56,9 +58,9 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 	
 	@Override
 	public String setUpChannel() {
-		ChannelService channelService = ChannelServiceFactory.getChannelService();
     String clientId = UUID.randomUUID().toString();
-		String token = channelService.createChannel(clientId);
+		String token = ChannelServiceFactory.getChannelService()
+				.createChannel(clientId);
 		tokenToClient.put(token, clientId);
 		return token;
 	}
@@ -90,7 +92,7 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 	}
 	
 	@Override
-	public Integer requestDocument(String documentKey, String token) {
+	public DocRequestorResult requestDocument(String documentKey, String token) {
 		int numPeopleInFront = -1;
 		String clientId = tokenToClient.get(token);
 		lazyInstantiationsForDoc(documentKey);
@@ -103,11 +105,11 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 		if (numPeopleInFront == 0) {
 			sendMessage(clientId, Messages.CODE_LOCK_READY + documentKey);
 		}
-		return numPeopleInFront;
+		return new DocRequestorResult(documentKey, numPeopleInFront);
 	}
 	
 	@Override
-	public void unrequestDocument(String documentKey, String token) {
+	public String unrequestDocument(String documentKey, String token) {
 		// Remove the client from the timeout queue.
 		removeFromTaskQueue(documentKey, token);
 		
@@ -134,6 +136,8 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 				i++;
 			}
 		}
+		
+		return documentKey;
 	}
 
 	@Override
@@ -198,16 +202,16 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 			String taskName = tokenToClient.get(token) + DELIMITER + keyStr;
 			QueueFactory.getDefaultQueue().add(
 					withCountdownMillis(LOCK_TIMEOUT * 1000)
-					.payload(new LockExpirationTask(keyStr))
+					.url("/task/lockExpiration")
+					.param("docKey", keyStr)
 					.taskName(taskName));
-			// TODO: also schedule this for when a user does not grab the lock in the specified time.
 			
 			return new LockedDocument(
 	        persistedDoc.getLockedBy(), 
 	        persistedDoc.getLockedUntil(), 
 	        keyStr,
 	        persistedDoc.getTitle(),
-	        persistedDoc.getContents());
+	        persistedDoc.getContents().getValue());
 		} finally {
 			if (txn.isActive()) {
 				txn.rollback();
@@ -228,7 +232,9 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 				return null;
 			} else {
 				return new UnlockedDocument(
-				        documentKey, persistedDoc.getTitle(), persistedDoc.getContents());
+				        documentKey,
+				        persistedDoc.getTitle(),
+				        persistedDoc.getContents().getValue());
 			}
 		} finally {
 			pm.close();
@@ -267,7 +273,7 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 			if (persistedDoc == null) {
 				persistedDoc = new Document(
 						doc.getTitle(), 
-						doc.getContents(),
+						new Text(doc.getContents()),
 						token,
 						null);
 			} else {
@@ -284,7 +290,7 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 				}
 				
 				persistedDoc.setTitle(doc.getTitle());
-				persistedDoc.setContents(doc.getContents());
+				persistedDoc.setContents(new Text(doc.getContents()));
 				persistedDoc.setLockedBy(null);
 				persistedDoc.setLockedUntil(null);
 			}
@@ -301,7 +307,7 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 			return new UnlockedDocument(
 					keyStr,
 					persistedDoc.getTitle(), 
-					persistedDoc.getContents());
+					persistedDoc.getContents().getValue());
 		} finally {
 			if (txn.isActive()) {
 				txn.rollback();
@@ -311,10 +317,10 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 	}
 	
 	@Override
-	public void releaseLock(LockedDocument doc, String token) throws LockExpired {
+	public String releaseLock(LockedDocument doc, String token) throws LockExpired {
 		String keyStr = doc.getKey();
 		if (keyStr == null) {
-			return;
+			return keyStr;
 		}
 		
 		// Remove the client from the timeout queue.
@@ -328,9 +334,9 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 			// Get persisted document.
 			Key key = KeyFactory.stringToKey(keyStr);
 			Document persistedDoc = pm.getObjectById(Document.class, key);
-			// Checking null in case key was invalid (e.g. by a malicious user).
+			// Checking null in case key provided into the method was invalid.
 			if (persistedDoc == null) {
-				return;
+				return keyStr;
 			}
 			
 			// We quickly check if the lock has expired, else continue on with
@@ -355,6 +361,8 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 			pollDocQueue(KeyFactory.keyToString(persistedDoc.getKey()));
 			
 			txn.commit();
+			
+			return keyStr;
 		} finally {
 			if (txn.isActive()) {
 				txn.rollback();
@@ -363,7 +371,7 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 		}
 	}
 	
-	protected void pollDocQueue(String documentKey) {
+	public void pollDocQueue(String documentKey) {
 		// Update queue for the doc and notify the person next in line.
 		Object queueLock = docToQueueLocks.get(documentKey);
 		synchronized (queueLock) {

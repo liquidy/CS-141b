@@ -2,8 +2,6 @@ package edu.caltech.cs141b.hw2.gwt.collab.client;
 
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.user.client.rpc.AsyncCallback;
-import com.google.gwt.user.client.ui.RichTextArea;
-import com.google.gwt.user.client.ui.TextBox;
 
 import edu.caltech.cs141b.hw2.gwt.collab.shared.LockedDocument;
 import edu.caltech.cs141b.hw2.gwt.collab.shared.UnlockedDocument;
@@ -41,11 +39,7 @@ public class DocCreator implements AsyncCallback<UnlockedDocument> {
 				+ "' successfully created.");
 		
 		// Add tab to UI.
-		RichTextArea contents = new RichTextArea();
-		contents.setHTML(result.getContents());
-		TextBox title = new TextBox();
-		title.setText(result.getTitle());
-		collaborator.addNewTab(result.getKey(), contents, title);
+		collaborator.addNewTab(result.getKey());
 		
 		// Refresh list in case title was changed.
 		collaborator.lister.getDocumentList();

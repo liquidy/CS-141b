@@ -10,10 +10,18 @@
     <servlet-name>greetServlet</servlet-name>
     <servlet-class>edu.caltech.cs141b.hw2.gwt.collab.server.CollaboratorServiceImpl</servlet-class>
   </servlet>
+  <servlet>
+    <servlet-name>lockExpirationTaskServlet</servlet-name>
+    <servlet-class>edu.caltech.cs141b.hw2.gwt.collab.server.LockExpirationTaskServlet</servlet-class>
+  </servlet>
   
   <servlet-mapping>
     <servlet-name>greetServlet</servlet-name>
     <url-pattern>/collab/collab</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>lockExpirationTaskServlet</servlet-name>
+    <url-pattern>/task/lockExpiration</url-pattern>
   </servlet-mapping>
   
   <!-- Default page to serve -->
