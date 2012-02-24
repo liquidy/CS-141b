@@ -224,14 +224,11 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 			requestor.requestDocument(tabKeys.get(tb.getSelectedTab()));
 		} else if (source.equals(lockButtonLocked)) {
 			int currentTabInd = tb.getSelectedTab();
-			UiState state = uiStates.get(currentTabInd);
-			if (state == UiState.LOCKED) {
-				LockedDocument lockedDoc = new LockedDocument(null, null,
-						tabKeys.get(currentTabInd),
-						tabTitles.get(currentTabInd).getValue(),
-						tabContents.get(currentTabInd).getHTML());
-				releaser.releaseLock(lockedDoc);
-			}
+			LockedDocument lockedDoc = new LockedDocument(null, null,
+					tabKeys.get(currentTabInd),
+					tabTitles.get(currentTabInd).getValue(),
+					tabContents.get(currentTabInd).getHTML());
+			releaser.releaseLock(lockedDoc);
 		} else if (source.equals(lockButtonRequesting)) {
 			int currentTabInd = tb.getSelectedTab();
 			unrequestor.unrequestDocument(tabKeys.get(currentTabInd));
@@ -325,10 +322,9 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 						char messageType = message.charAt(0);
 						if (messageType == Messages.CODE_LOCK_READY) {
 							// Doc is ready to be locked. The rest of the string is doc ID.
-							String docId = message.substring(1);
-							docId = docId.replaceAll("\\s", "");
-							if (tabIsSelected() && tabKeys.contains(docId)) {
-								locker.lockDocument(docId);
+							String docKey = message.substring(1).replaceAll("\\s", "");
+							if (tabIsSelected() && tabKeys.contains(docKey)) {
+								locker.lockDocument(docKey);
 							}
 						} else if (messageType == Messages.CODE_LOCK_NOT_READY) {
 							// Doc is not ready to be locked. The rest of the string is
@@ -348,6 +344,10 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 								queueStatus.setHTML("<br />Position " +
 										numPeopleLeft + " in line");
 							}
+						} else if (messageType == Messages.CODE_LOCK_EXPIRED) {
+							statusUpdate("Timeout occurred: document lock released.");
+							String docKey = message.substring(1).replaceAll("\\s", "");
+							updateVarsAndUi(docKey, UiState.VIEWING);
 						}
 					}
 					@Override

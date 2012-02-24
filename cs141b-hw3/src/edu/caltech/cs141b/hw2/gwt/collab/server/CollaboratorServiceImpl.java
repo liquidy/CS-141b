@@ -376,23 +376,26 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 	}
 	
 	protected void pollDocQueue(String documentKey) {
-		// Update queue for the doc and notify the person next in line.
+		// Update queue for the doc.
 		Object queueLock = docToQueueLocks.get(documentKey);
 		synchronized (queueLock) {
 			Queue<String> clientIds = docToQueue.get(documentKey);
-			clientIds.poll();
+			String clientId = clientIds.poll();
 			if (!clientIds.isEmpty()) {
-				Iterator<String> clientsItr = clientIds.iterator();
-				// Notify the first person that doc is ready to be locked.
-				String first = clientsItr.next();
-				sendMessage(first, Messages.CODE_LOCK_READY + documentKey);
-				// Notify the rest that the number of people left has changed.
-				int i = 1;
-				while (clientsItr.hasNext()) {
-					String clientId = clientsItr.next();
-					sendMessage(clientId, Messages.CODE_LOCK_NOT_READY + 
-							String.valueOf(i) + DELIMITER + documentKey);
-					i++;
+				sendMessage(clientId, Messages.CODE_LOCK_EXPIRED + documentKey);
+				if (!clientIds.isEmpty()) {
+					Iterator<String> clientsItr = clientIds.iterator();
+					// Notify the first person that doc is ready to be locked.
+					clientId = clientsItr.next();
+					sendMessage(clientId, Messages.CODE_LOCK_READY + documentKey);
+					// Notify the rest that the number of people left has changed.
+					int i = 1;
+					while (clientsItr.hasNext()) {
+						clientId = clientsItr.next();
+						sendMessage(clientId, Messages.CODE_LOCK_NOT_READY + 
+								String.valueOf(i) + DELIMITER + documentKey);
+						i++;
+					}
 				}
 			}
 		}
