@@ -12,6 +12,7 @@ public class DocActivity extends Activity{
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.doclayout);
 
+		
 		Button next = (Button) findViewById(R.id.Close);
 		next.setOnClickListener(new View.OnClickListener() {
 			public void onClick(View view) {
