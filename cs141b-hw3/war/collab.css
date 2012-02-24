@@ -30,8 +30,8 @@ body {
 	margin: 0 auto 0 auto;
 }
 .list-column {
-	min-width: 80px;
 	width: 300px;
+	max-width: 300px;
 	padding: 10px;
 	margin-right: 20px;
 	background: rgba(255,255,255,.5);/*set white transparency*/
@@ -68,3 +68,4 @@ body {
 .gwt-PushButton:hover {
 	background: #bbb;
 }
+

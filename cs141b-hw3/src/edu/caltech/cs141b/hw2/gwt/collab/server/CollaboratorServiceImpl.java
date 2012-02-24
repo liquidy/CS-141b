@@ -43,7 +43,7 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
                                      implements CollaboratorService {
 	
 	public static final int LOCK_TIMEOUT = 30;     // Seconds
-	public static final String DELIMITER = ":";
+	public static final String DELIMITER = "~";
 	
 	private Hashtable<String, String> tokenToClient = 
 			new Hashtable<String, String>();
