@@ -71,7 +71,6 @@
         android:text="Reload"
         android:textColor="#000000"
         android:textSize="18px" />
-
     <EditText
         android:id="@+id/Title"
         android:layout_width="fill_parent"

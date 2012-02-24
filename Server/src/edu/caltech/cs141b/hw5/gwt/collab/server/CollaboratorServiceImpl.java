@@ -20,8 +20,6 @@ import edu.caltech.cs141b.hw5.gwt.collab.shared.LockExpired;
 import edu.caltech.cs141b.hw5.gwt.collab.shared.LockUnavailable;
 import edu.caltech.cs141b.hw5.gwt.collab.shared.LockedDocument;
 import edu.caltech.cs141b.hw5.gwt.collab.shared.UnlockedDocument;
-import edu.caltech.cs141b.hw5.gwt.collab.shared.Document;
-import edu.caltech.cs141b.hw5.gwt.collab.shared.PMF;
 
 /**
  * The server side implementation of the RPC service.

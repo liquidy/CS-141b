@@ -36,12 +36,14 @@ public class CollaboratorMessageServlet extends HttpServlet {
 	
 	public void doPost(HttpServletRequest req, HttpServletResponse resp) {
 		
+		log.info("Received request");
 		try {
 			RequestMessage request;
 
 			try {
 				// Deserializing
 				request = RequestMessage.parseFrom(req.getInputStream());
+				log.info("successfully parsed request");
 			} catch (IOException e) {
 				log.severe("IOException thrown when getting input strea: " + e.getMessage());
 				return;
@@ -70,6 +72,7 @@ public class CollaboratorMessageServlet extends HttpServlet {
 	 */
 	private ResponseMessage onMessage(RequestMessage request, String ip) {
 		
+		log.info("starting processing request");
 		ResponseMessage.Builder builder = ResponseMessage.newBuilder();
 		
 		if (!request.hasRequestType()) {
@@ -142,6 +145,7 @@ public class CollaboratorMessageServlet extends HttpServlet {
 					break;		
 			}
 		}
+		log.info("finished processing request");
 		return builder.build();
 	}
 }
