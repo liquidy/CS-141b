@@ -15,8 +15,8 @@ public class LockExpirationTaskServlet extends HttpServlet {
 		resp.setContentType("text/plain");
 		String docKey = req.getParameter("docKey");
 		
-//		CollaboratorServiceImpl collabService = CollaboratorServiceImpl.getInstance();
-//		collabService.pollDocQueue(docKey);
+		CollaboratorServiceCommon collabCommon = CollaboratorServiceCommon.getInstance();
+		collabCommon.pollDocQueue(docKey);
 		
 		resp.getWriter().write("Success!");
 	}

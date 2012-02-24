@@ -35,8 +35,5 @@ public interface CollaboratorServiceAsync {
 
 	void releaseLock(LockedDocument doc, String token,
 			AsyncCallback<String> callback);
-	
-	void pollDocQueue(String docKey, AsyncCallback<Void> callback);
-
 }
 
