@@ -56,6 +56,10 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 	@SuppressWarnings("unused")
 	private static final Logger log = Logger.getLogger(CollaboratorServiceImpl.class.toString());
 	
+	public CollaboratorServiceImpl() {
+		CollaboratorServiceCommon.setService(this);
+	}
+	
 	@Override
 	public String setUpChannel() {
     String clientId = UUID.randomUUID().toString();
@@ -371,7 +375,7 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 		}
 	}
 	
-	public void pollDocQueue(String documentKey) {
+	protected void pollDocQueue(String documentKey) {
 		// Update queue for the doc and notify the person next in line.
 		Object queueLock = docToQueueLocks.get(documentKey);
 		synchronized (queueLock) {

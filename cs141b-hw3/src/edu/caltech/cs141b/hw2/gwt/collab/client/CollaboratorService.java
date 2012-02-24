@@ -95,13 +95,5 @@ public interface CollaboratorService extends RemoteService {
 	 *         LockedDocument object cannot be used to release the lock
 	 */
 	String releaseLock(LockedDocument doc, String token) throws LockExpired;
-	
-	/**
-	 * Used to pass the token from the person in the front of the queue
-	 * to the next person in line.
-	 * 
-	 * @param docKey document key
-	 */
-	void pollDocQueue(String docKey);
 }
 
