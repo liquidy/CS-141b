@@ -65,6 +65,7 @@ public class CollaboratorAndroidActivity extends Activity {
 		refresh.setOnClickListener(new View.OnClickListener() {
 			public void onClick(View view) {
 				refreshDocumentList();
+				
 			}
 
 		});
