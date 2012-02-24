@@ -32,7 +32,7 @@ public class ProtoBufConnector {
 	 * @param input
 	 * @return response
 	 */
-	public ResponseMessage makePostConnct(RequestMessage input) {
+	public ResponseMessage makePostConnect(RequestMessage input) {
 		ResponseMessage result = null;
 		try {
 			URL url = new URL(address);	

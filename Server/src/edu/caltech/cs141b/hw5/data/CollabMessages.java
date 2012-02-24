@@ -43,8 +43,7 @@ public final class CollabMessages {
     ;        }
           };
     
-    @SuppressWarnings("unused")
-	private final int index;
+    private final int index;
     private final int value;
     private StatusType(int index, int value) {
       this.index = index;
@@ -89,8 +88,7 @@ public final class CollabMessages {
     ;        }
           };
     
-    @SuppressWarnings("unused")
-	private final int index;
+    private final int index;
     private final int value;
     private RequestType(int index, int value) {
       this.index = index;
