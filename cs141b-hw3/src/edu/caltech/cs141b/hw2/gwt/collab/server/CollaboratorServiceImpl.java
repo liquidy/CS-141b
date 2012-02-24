@@ -51,6 +51,8 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 			new Hashtable<String, Queue<String>>();    // Queues are of clientIds
 	private Hashtable<String, Object> docToQueueLocks = 
 			new Hashtable<String, Object>();
+	private Hashtable<String, String> docToTaskNames =
+			new Hashtable<String, String>();
 	private Object instantiationLock = new Object();
 	
 	@SuppressWarnings("unused")
@@ -115,7 +117,7 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 	@Override
 	public String unrequestDocument(String documentKey, String token) {
 		// Remove the client from the timeout queue.
-		removeFromTaskQueue(documentKey, token);
+		removeFromTaskQueue(documentKey);
 		
 		// Remove clientId from the document queue.
 		String clientToRemove = tokenToClient.get(token);
@@ -203,7 +205,7 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 			String keyStr = KeyFactory.keyToString(persistedDoc.getKey());
 			// Set up scheduled task so that after a timeout period, we just
 			// move onto the next person in the queue.
-			String taskName = tokenToClient.get(token) + DELIMITER + keyStr;
+			String taskName = UUID.randomUUID().toString();
 			QueueFactory.getDefaultQueue().add(
 					withCountdownMillis(LOCK_TIMEOUT * 1000)
 					.url("/task/lockExpiration")
@@ -256,7 +258,7 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 			key = KeyFactory.stringToKey(keyStr);
 			
 			// Remove the client from the timeout queue.
-			removeFromTaskQueue(keyStr, token);
+			removeFromTaskQueue(keyStr);
 		}
 		
 		// Persist Document JDO.
@@ -328,7 +330,7 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 		}
 		
 		// Remove the client from the timeout queue.
-		removeFromTaskQueue(keyStr, token);
+		removeFromTaskQueue(keyStr);
 		
 		PersistenceManager pm = PMF.get().getPersistenceManager();
 		Transaction txn = pm.currentTransaction();
@@ -381,7 +383,7 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 		synchronized (queueLock) {
 			Queue<String> clientIds = docToQueue.get(documentKey);
 			String clientId = clientIds.poll();
-			if (!clientIds.isEmpty()) {
+			if (clientId != null) {
 				sendMessage(clientId, Messages.CODE_LOCK_EXPIRED + documentKey);
 				if (!clientIds.isEmpty()) {
 					Iterator<String> clientsItr = clientIds.iterator();
@@ -421,8 +423,10 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 		}
 	}
 	
-	private void removeFromTaskQueue(String documentKey, String token) {
-		QueueFactory.getDefaultQueue()
-			.deleteTask(tokenToClient.get(token) + DELIMITER + documentKey);
+	private void removeFromTaskQueue(String documentKey) {
+		String taskName = docToTaskNames.get(documentKey);
+		if (taskName != null) {
+			QueueFactory.getDefaultQueue().deleteTask(taskName);
+		}
 	}
 }

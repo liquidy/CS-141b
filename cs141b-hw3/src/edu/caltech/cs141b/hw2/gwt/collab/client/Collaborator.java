@@ -363,7 +363,6 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		});
 	}
 
-
 	/**
 	 * Updates relevant state-capturing variables and updates UI
 	 * if necessary.
