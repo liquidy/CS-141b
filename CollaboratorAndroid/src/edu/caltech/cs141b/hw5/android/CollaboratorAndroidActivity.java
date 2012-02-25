@@ -24,6 +24,9 @@ public class CollaboratorAndroidActivity extends Activity {
 	private ArrayAdapter<String> listAdapter;
 
 	public static final int DOC_CHANGED = 1;
+	
+	public static final int LOAD_DOC = 1;
+	public static final int NEW_DOC = 2;
 	/** Called when the activity is first created. */
 	@Override
 
@@ -54,7 +57,10 @@ public class CollaboratorAndroidActivity extends Activity {
 			public void onItemClick(AdapterView<?> parent, View view,
 					int position, long id) {
 				Intent newPage = new Intent(view.getContext(), DocActivity.class);
-				newPage.putExtra("document key", docKeys.get(position));
+				Bundle b = new Bundle();
+				b.putString("document key", docKeys.get(position));
+				b.putInt("status code", LOAD_DOC);
+				newPage.putExtras(b);
 				startActivityForResult(newPage, 0);
 			}
 		});
@@ -64,16 +70,18 @@ public class CollaboratorAndroidActivity extends Activity {
 
 		refresh.setOnClickListener(new View.OnClickListener() {
 			public void onClick(View view) {
-				refreshDocumentList();
-				
+				refreshDocumentList();	
 			}
 
 		});
 
 		newDoc.setOnClickListener(new View.OnClickListener() {
 			public void onClick(View view) {
-				Intent myIntent = new Intent(view.getContext(), DocActivity.class);
-				startActivityForResult(myIntent, 0);
+				Intent newPage = new Intent(view.getContext(), DocActivity.class);
+				Bundle b = new Bundle();
+				b.putInt("status code", NEW_DOC);
+				newPage.putExtras(b);
+				startActivityForResult(newPage, 0);
 			}
 		});
 

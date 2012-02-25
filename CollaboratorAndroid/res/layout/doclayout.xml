@@ -61,16 +61,13 @@
         </Button>
     </TableRow>
 
-    <Button
-        android:id="@+id/Reload"
-        android:layout_width="0dip"
-        android:layout_height="55px"
-        android:layout_marginRight="5px"
-        android:layout_weight="1"
-        android:background="#90E890"
-        android:text="Reload"
-        android:textColor="#000000"
-        android:textSize="18px" />
+    <TextView
+        android:id="@+id/Status"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:text="Status Area" >
+    </TextView>
+
     <EditText
         android:id="@+id/Title"
         android:layout_width="fill_parent"
@@ -88,8 +85,8 @@
         android:layout_marginTop="5px"
         android:background="#FFFFFF"
         android:editable="true"
+        android:gravity="top"
         android:hint="CONTENT"
-        android:textColor="#000000"
-        android:gravity="top"/>
+        android:textColor="#000000" />
 
 </TableLayout>
