@@ -90,8 +90,8 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	protected ArrayList<TextBox> tabTitles = new ArrayList<TextBox>();
 	protected ArrayList<Integer> tabQueueLengths = new ArrayList<Integer>();
 	protected ArrayList<UiState> uiStates = new ArrayList<UiState>();
-	protected boolean simulating = false;
 	protected String channelToken = null;
+	protected boolean simulating = false;
 	protected Timer thinkingTimer = null;
 	protected Timer eatingTimer = null;
 
@@ -213,6 +213,11 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	 */
 	@Override
 	public void onClick(ClickEvent event) {
+		// Channel is not set up yet, so don't let the user do anything.
+		if (channelToken == null) {
+			return;
+		}
+		
 		Object source = event.getSource();
 		if (source.equals(refreshList)) {
 			lister.getDocumentList();

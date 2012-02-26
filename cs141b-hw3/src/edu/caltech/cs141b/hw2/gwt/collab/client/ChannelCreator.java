@@ -27,7 +27,8 @@ public class ChannelCreator implements AsyncCallback<String> {
 
 	@Override
 	public void onSuccess(String token) {
-		collaborator.statusUpdate("Channel token: " + token);
+		collaborator.statusUpdate(
+				"Channel token: " + token.substring(0, 40) + "...");
 		collaborator.channelToken = token;
 		collaborator.setUpChannel();
 	}
