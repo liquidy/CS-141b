@@ -22,6 +22,7 @@ public class CollaboratorAndroidActivity extends Activity {
 	private ArrayList<String> docKeys = new ArrayList<String>();
 	private ArrayList<String> docTitles = new ArrayList<String>();
 	private ArrayAdapter<String> listAdapter;
+	private CollabServiceWrapper service = new CollabServiceWrapper();  
 
 	public static final int DOC_CHANGED = 1;
 	
@@ -33,8 +34,7 @@ public class CollaboratorAndroidActivity extends Activity {
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
-		// Test getting the document list and print it out on screen
-		CollabServiceWrapper service = new CollabServiceWrapper();      
+		// Test getting the document list and print it out on screen    
 		List<DocumentMetadata> metas = service.getDocumentList();
 
 		docTitles.clear();
@@ -95,15 +95,8 @@ public class CollaboratorAndroidActivity extends Activity {
 		}
 	}
 
-	static final String[] COUNTRIES = new String[] {
-		"AfghanistanHOOOOOOOOOOOOHAAAAAAASCROLIINGGGGGGGGGGGERRRYDAAAAAY", 
-		"Albania", "Algeria", "American Samoa", "Andorra",
-		"Angola", "Anguilla", "Antarctica", "Antigua and Barbuda", "Argentina",
-		"Armenia", "Aruba", "Australia", "Austria", "Azerbaijan" };
-
 	public void refreshDocumentList(){
 		// Test getting the document list and print it out on screen
-		CollabServiceWrapper service = new CollabServiceWrapper();      
 		List<DocumentMetadata> metas = service.getDocumentList();
 
 		docTitles.clear();

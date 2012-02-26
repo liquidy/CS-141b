@@ -21,6 +21,7 @@ public class DocActivity extends Activity{
 	private String docKey;
 	private LockedDocument lockedDoc;
 	private UnlockedDocument unlockedDoc;
+	private CollabServiceWrapper service = new CollabServiceWrapper(); 
 	
 	
 	/** Called when the activity is first created. */
@@ -106,7 +107,6 @@ public class DocActivity extends Activity{
 	
 	private void loadDocument(){
 		try {
-			CollabServiceWrapper service = new CollabServiceWrapper(); 
 			unlockedDoc = service.getDocument(docKey);
 			title.setText(unlockedDoc.getTitle());
 			contents.setText(unlockedDoc.getContents());
@@ -114,6 +114,7 @@ public class DocActivity extends Activity{
 			title.setEnabled(false);
 			contents.setEnabled(false);
 		} catch (InvalidRequest e) {
+			statusPane.setText("Error loading document");
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -121,7 +122,6 @@ public class DocActivity extends Activity{
 	
 	private void lockDocument(){
 		try {
-			CollabServiceWrapper service = new CollabServiceWrapper(); 
 			title.setText(docKey);
 			lockedDoc = service.lockDocument(docKey);
 //			LockedDocument lockedDocument = service.lockDocument(docKey);
