@@ -84,8 +84,6 @@ public class CollaboratorAndroidActivity extends Activity {
 				startActivityForResult(newPage, 0);
 			}
 		});
-
-
 	}
 
 	protected void onActivityResult(int requestCode, int resultCode,

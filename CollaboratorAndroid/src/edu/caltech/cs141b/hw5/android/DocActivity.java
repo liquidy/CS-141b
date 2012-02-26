@@ -1,7 +1,5 @@
 package edu.caltech.cs141b.hw5.android;
 
-import edu.caltech.cs141b.hw5.gwt.collab.client.DocLocker;
-import edu.caltech.cs141b.hw5.android.data.LockExpired;
 import edu.caltech.cs141b.hw5.android.data.LockedDocument;
 import edu.caltech.cs141b.hw5.android.data.InvalidRequest;
 import edu.caltech.cs141b.hw5.android.data.LockUnavailable;
@@ -22,6 +20,7 @@ public class DocActivity extends Activity{
 	private TextView statusPane;
 	private String docKey;
 	private LockedDocument lockedDoc;
+	private UnlockedDocument unlockedDoc;
 	
 	
 	/** Called when the activity is first created. */
@@ -58,23 +57,11 @@ public class DocActivity extends Activity{
 		Button lockButton = (Button) findViewById(R.id.Lock);
 		lockButton.setOnClickListener(new View.OnClickListener() {
 			public void onClick(View view) {
+				lockDocument();
 				statusPane.setText(docKey);
-//				try {
-//					CollabServiceWrapper service = new CollabServiceWrapper(); 
-//					service.lockDocument(docKey);
-////					title.setEnabled(true);
-////					contents.setEnabled(true);
-//					statusPane.setText("Document locked");
-//				} catch (LockUnavailable e) {
-//					statusPane.setText("Could not acquire lock");
-//					e.printStackTrace();
-//				} catch (InvalidRequest e) {
-//					statusPane.setText("Error");
-//					// TODO Auto-generated catch block
-//					e.printStackTrace();
-//				}
 			}
-		});
+		}
+			);
 		
 		Button saveButton = (Button) findViewById(R.id.Save);
 		saveButton.setBackgroundColor(Color.GRAY);
@@ -120,13 +107,32 @@ public class DocActivity extends Activity{
 	private void loadDocument(){
 		try {
 			CollabServiceWrapper service = new CollabServiceWrapper(); 
-			UnlockedDocument unlockedDoc = service.getDocument(docKey);
+			unlockedDoc = service.getDocument(docKey);
 			title.setText(unlockedDoc.getTitle());
 			contents.setText(unlockedDoc.getContents());
 			statusPane.setText("Document loaded successfully");
 			title.setEnabled(false);
 			contents.setEnabled(false);
 		} catch (InvalidRequest e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	private void lockDocument(){
+		try {
+			CollabServiceWrapper service = new CollabServiceWrapper(); 
+			title.setText(docKey);
+			lockedDoc = service.lockDocument(docKey);
+//			LockedDocument lockedDocument = service.lockDocument(docKey);
+//			title.setEnabled(true);
+//			contents.setEnabled(true);
+//			statusPane.setText(unlockedDoc.getKey());
+		} catch (LockUnavailable e) {
+			statusPane.setText("Could not acquire lock");
+			e.printStackTrace();
+		} catch (InvalidRequest e) {
+			statusPane.setText("Error");
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
