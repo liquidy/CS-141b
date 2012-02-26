@@ -20,6 +20,6 @@ public class CollaboratorServiceCommon {
   }
   
   protected void pollDocQueue(String documentKey) {
-  	service.pollDocQueue(documentKey);
+  	service.pollDocQueue(documentKey, true);
   }
 }

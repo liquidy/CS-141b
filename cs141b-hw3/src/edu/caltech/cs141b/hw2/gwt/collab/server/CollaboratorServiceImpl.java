@@ -307,7 +307,7 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 			keyStr = KeyFactory.keyToString(persistedDoc.getKey());
 			// Update queue for the doc and notify the person next in line.
 			lazyInstantiationsForDoc(keyStr);
-			pollDocQueue(keyStr);
+			pollDocQueue(keyStr, false);
 			
 			// Pack up UnlockedDocument to return.
 			return new UnlockedDocument(
@@ -364,7 +364,7 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 			}
 			
 			// Update queue for the doc and notify the person next in line.
-			pollDocQueue(KeyFactory.keyToString(persistedDoc.getKey()));
+			pollDocQueue(KeyFactory.keyToString(persistedDoc.getKey()), false);
 			
 			txn.commit();
 			
@@ -377,14 +377,16 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 		}
 	}
 	
-	protected void pollDocQueue(String documentKey) {
+	protected void pollDocQueue(String documentKey, boolean lockExpired) {
 		// Update queue for the doc.
 		Object queueLock = docToQueueLocks.get(documentKey);
 		synchronized (queueLock) {
 			Queue<String> clientIds = docToQueue.get(documentKey);
 			String clientId = clientIds.poll();
 			if (clientId != null) {
-				sendMessage(clientId, Messages.CODE_LOCK_EXPIRED + documentKey);
+				if (lockExpired) {
+					sendMessage(clientId, Messages.CODE_LOCK_EXPIRED + documentKey);
+				}
 				if (!clientIds.isEmpty()) {
 					Iterator<String> clientsItr = clientIds.iterator();
 					// Notify the first person that doc is ready to be locked.
