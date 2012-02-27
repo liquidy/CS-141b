@@ -14,6 +14,7 @@ import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.event.logical.shared.SelectionEvent;
 import com.google.gwt.event.logical.shared.SelectionHandler;
 import com.google.gwt.user.client.Timer;
+import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.HorizontalPanel;
@@ -90,8 +91,8 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	protected ArrayList<TextBox> tabTitles = new ArrayList<TextBox>();
 	protected ArrayList<Integer> tabQueueLengths = new ArrayList<Integer>();
 	protected ArrayList<UiState> uiStates = new ArrayList<UiState>();
-	protected boolean simulating = false;
 	protected String channelToken = null;
+	protected boolean simulating = false;
 	protected Timer thinkingTimer = null;
 	protected Timer eatingTimer = null;
 
@@ -213,6 +214,13 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	 */
 	@Override
 	public void onClick(ClickEvent event) {
+		// Channel is not set up yet, so don't let the user do anything.
+		if (channelToken == null) {
+			Window.alert("Please wait while the channel is established. " +
+					"If this takes more than a few seconds, try refreshing the page.");
+			return;
+		}
+		
 		Object source = event.getSource();
 		if (source.equals(refreshList)) {
 			lister.getDocumentList();
