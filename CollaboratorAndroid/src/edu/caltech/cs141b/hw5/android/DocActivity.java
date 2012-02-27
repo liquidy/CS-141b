@@ -19,8 +19,8 @@ public class DocActivity extends Activity{
 	private EditText contents;
 	private TextView statusPane;
 	private String docKey;
-	private LockedDocument lockedDoc;
-	private UnlockedDocument unlockedDoc;
+	private LockedDocument lDoc;
+	private UnlockedDocument uDoc;
 	private CollabServiceWrapper service = new CollabServiceWrapper(); 
 	
 	
@@ -107,9 +107,9 @@ public class DocActivity extends Activity{
 	
 	private void loadDocument(){
 		try {
-			unlockedDoc = service.getDocument(docKey);
-			title.setText(unlockedDoc.getTitle());
-			contents.setText(unlockedDoc.getContents());
+			uDoc = service.getDocument(docKey);
+			title.setText(uDoc.getTitle());
+			contents.setText(uDoc.getContents());
 			statusPane.setText("Document loaded successfully");
 			title.setEnabled(false);
 			contents.setEnabled(false);
@@ -123,7 +123,7 @@ public class DocActivity extends Activity{
 	private void lockDocument(){
 		try {
 			title.setText(docKey);
-			lockedDoc = service.lockDocument(docKey);
+			lDoc = service.lockDocument(docKey);
 //			LockedDocument lockedDocument = service.lockDocument(docKey);
 //			title.setEnabled(true);
 //			contents.setEnabled(true);
