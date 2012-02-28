@@ -99,9 +99,6 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 	public DocRequestorResult requestDocument(String documentKey, String token) {
 		int numPeopleInFront = -1;
 		String clientId = tokenToClient.get(token);
-		if (clientId == null) {
-			return null;
-		}
 		lazyInstantiationsForDoc(documentKey);
 		Queue<String> clientQueue = docToQueue.get(documentKey);
 		synchronized (clientQueue) {
@@ -409,9 +406,6 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 	}
 	
 	private void lazyInstantiationsForDoc(String documentKey) {
-		if (documentKey == null || documentKey.isEmpty())
-			return;
-		
 		// Lazy instantiation for the queues and corresponding locks.
 		if (!docToQueue.containsKey(documentKey)) {
 			synchronized (instantiationLock) {
