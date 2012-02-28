@@ -15,6 +15,9 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import android.util.Log;
+import java.util.Date;
+
 public class DocActivity extends Activity{
 	private EditText title;
 	private EditText contents;
@@ -26,6 +29,8 @@ public class DocActivity extends Activity{
 	
 	private Button saveButton;
 	private Button lockButton;
+	
+	private boolean editEnabled = false;
 	
 	/** Called when the activity is first created. */
 	public void onCreate(Bundle savedInstanceState) {
@@ -67,23 +72,15 @@ public class DocActivity extends Activity{
 			);
 		
 		saveButton = (Button) findViewById(R.id.Save);
-		saveButton.setBackgroundColor(Color.GRAY);
-		saveButton.setEnabled(false);
 		saveButton.setOnClickListener(new View.OnClickListener() {
 			public void onClick(View view) {
 				lDoc.setContents(contents.getText().toString());
 				lDoc.setTitle(title.getText().toString());
 					try {
-						service.saveDocument(lDoc);
+						uDoc = service.saveDocument(lDoc);
 						statusPane.setText("Save successful.");
 						
-						saveButton.setBackgroundColor(Color.GRAY);
-						saveButton.setEnabled(false);
-						
-						// enable lock
-						lockButton.setBackgroundColor(0xFF90E890);
-						lockButton.setEnabled(true);
-						
+						disableEditing();
 					} catch (LockExpired e) {
 						statusPane.setText("Lock expired.");
 						e.printStackTrace();
@@ -99,23 +96,15 @@ public class DocActivity extends Activity{
 			loadDocument();
 			break;
 		case CollaboratorAndroidActivity.NEW_DOC:
-			LockedDocument lockedDoc = new LockedDocument(null, null, null,
+			
+			lDoc = new LockedDocument(null, null, null,
 					null,
 					null);
-			try {
-				service.saveDocument(new LockedDocument(null, null, null, null, null));
-			} catch (LockExpired e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (InvalidRequest e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
 			title.setText("Enter the document title.");
-			contents.setText("New Doc not implemented yet");
-			statusPane.setText("New Document created.");
-//			title.setEnabled(true);
-//			contents.setEnabled(true);
+			contents.setText("Enter document contents.");
+			statusPane.setText("Save to create new document.");
+
+			enableEditing();
 			break;
 		}
      
@@ -128,8 +117,7 @@ public class DocActivity extends Activity{
 			title.setText(uDoc.getTitle());
 			contents.setText(uDoc.getContents());
 			statusPane.setText("Document loaded successfully");
-			title.setEnabled(false);
-			contents.setEnabled(false);
+			disableEditing();
 		} catch (InvalidRequest e) {
 			statusPane.setText("Error loading document");
 			// TODO Auto-generated catch block
@@ -139,18 +127,10 @@ public class DocActivity extends Activity{
 	
 	private void lockDocument(){
 		try {
-			lDoc = service.lockDocument(docKey);
-			title.setEnabled(true);
-			contents.setEnabled(true);
+			lDoc = service.lockDocument(uDoc.getKey());
 			statusPane.setText("Lock successfully acquired");
-			// re-enable save
-			//saveButton.getBackground().setColorFilter(Color.parseColor("#90E890"), PorterDuff.Mode.DARKEN);
-			saveButton.setBackgroundColor(0xFF90E890);
-			saveButton.setEnabled(true);
 			
-			//disable lock button
-			lockButton.setEnabled(false);
-			lockButton.setBackgroundColor(Color.GRAY);
+			enableEditing();
 		} catch (LockUnavailable e) {
 			statusPane.setText("Could not acquire lock");
 			e.printStackTrace();
@@ -159,5 +139,34 @@ public class DocActivity extends Activity{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+	
+	// when editing is enabled, have lock.
+	private void enableEditing(){
+		title.setEnabled(true);
+		contents.setEnabled(true);
+		this.editEnabled = true;
+		
+		// re-enable save
+		saveButton.setBackgroundColor(0xFF90E890);
+		saveButton.setEnabled(true);
+		
+		//disable lock button
+		lockButton.setEnabled(false);
+		lockButton.setBackgroundColor(Color.GRAY);
+	}
+	
+	private void disableEditing(){
+		title.setEnabled(true);
+		contents.setEnabled(true);
+		this.editEnabled = false;
+		
+		// can't save
+		saveButton.setBackgroundColor(Color.GRAY);
+		saveButton.setEnabled(false);
+		
+		// enable lock
+		lockButton.setBackgroundColor(0xFF90E890);
+		lockButton.setEnabled(true);
 	}
 }

@@ -414,21 +414,21 @@ public final class CollabMessages {
       return defaultInstance;
     }
     
-    // required string lockedBy = 1;
+    // optional string lockedBy = 1;
     public static final int LOCKEDBY_FIELD_NUMBER = 1;
     private boolean hasLockedBy;
     private java.lang.String lockedBy_ = "";
     public boolean hasLockedBy() { return hasLockedBy; }
     public java.lang.String getLockedBy() { return lockedBy_; }
     
-    // required int64 lockedUntil = 2;
+    // optional int64 lockedUntil = 2;
     public static final int LOCKEDUNTIL_FIELD_NUMBER = 2;
     private boolean hasLockedUntil;
     private long lockedUntil_ = 0L;
     public boolean hasLockedUntil() { return hasLockedUntil; }
     public long getLockedUntil() { return lockedUntil_; }
     
-    // required string key = 3;
+    // optional string key = 3;
     public static final int KEY_FIELD_NUMBER = 3;
     private boolean hasKey;
     private java.lang.String key_ = "";
@@ -452,9 +452,6 @@ public final class CollabMessages {
     private void initFields() {
     }
     public final boolean isInitialized() {
-      if (!hasLockedBy) return false;
-      if (!hasLockedUntil) return false;
-      if (!hasKey) return false;
       if (!hasTitle) return false;
       if (!hasContents) return false;
       return true;
@@ -708,7 +705,7 @@ public final class CollabMessages {
       }
       
       
-      // required string lockedBy = 1;
+      // optional string lockedBy = 1;
       public boolean hasLockedBy() {
         return result.hasLockedBy();
       }
@@ -729,7 +726,7 @@ public final class CollabMessages {
         return this;
       }
       
-      // required int64 lockedUntil = 2;
+      // optional int64 lockedUntil = 2;
       public boolean hasLockedUntil() {
         return result.hasLockedUntil();
       }
@@ -747,7 +744,7 @@ public final class CollabMessages {
         return this;
       }
       
-      // required string key = 3;
+      // optional string key = 3;
       public boolean hasKey() {
         return result.hasKey();
       }

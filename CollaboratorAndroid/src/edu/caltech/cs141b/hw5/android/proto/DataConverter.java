@@ -24,6 +24,12 @@ public class DataConverter {
 	 * @return native object type
 	 */
 	public static LockedDocument buildLockedDocument(LockedDocumentInfo docInfo) {
+		
+		if (!docInfo.hasKey()) { // a new document doens't have key
+			return new LockedDocument(null, null, null, 
+					docInfo.getTitle(), docInfo.getContents());
+		} 
+		
 		return new LockedDocument(docInfo.getLockedBy(), new Date(docInfo.getLockedUntil()), 
 				docInfo.getKey(), docInfo.getTitle(), docInfo.getContents());
 	}
@@ -35,13 +41,20 @@ public class DataConverter {
 	 * @return protoc data type
 	 */
 	public static LockedDocumentInfo buildLockedDocumentInfo(LockedDocument doc) {
-		return LockedDocumentInfo.newBuilder()
-				.setKey(doc.getKey())
-				.setTitle(doc.getTitle())
-				.setLockedBy(doc.getLockedBy())
-				.setLockedUntil(doc.getLockedUntil().getTime())
-				.setContents(doc.getContents())
-				.build();
+		
+		LockedDocumentInfo.Builder builder = LockedDocumentInfo.newBuilder();
+		
+		// A locked document that has null key is a new document
+		// and won't have these fields. Set these only when key is
+		// not null because protocol buffer can't handle null values
+		if (doc.getKey() != null) {
+			builder.setKey(doc.getKey())
+					.setLockedUntil(doc.getLockedUntil().getTime())
+					.setLockedBy(doc.getLockedBy());
+		}
+		return builder.setTitle(doc.getTitle())
+						.setContents(doc.getContents())
+						.build();
 	}
 	
 	/**

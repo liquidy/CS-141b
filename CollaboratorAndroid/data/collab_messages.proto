@@ -46,9 +46,9 @@ message DocumentMetaInfo {
 }
 
 message LockedDocumentInfo {
-	required string lockedBy = 1;
-	required int64 lockedUntil = 2;
-	required string key = 3;
+	optional string lockedBy = 1;
+	optional int64 lockedUntil = 2;
+	optional string key = 3;
 	required string title = 4;
 	required string contents = 5;
 }

@@ -149,6 +149,7 @@ public class CollabServiceWrapper {
 				.setLockedDoc(DataConverter.buildLockedDocumentInfo(doc))
 				.build();
 		
+		Log.i("eee", "fff4");
 		RequestTaskAsync reqTask = new RequestTaskAsync();
 		reqTask.execute(request);		
 		
