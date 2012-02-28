@@ -481,7 +481,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	protected void simulateThinking() {
 		int sleepRange = THINKING_RANGE_END - THINKING_RANGE_START + 1;
 		int waitingTime = 
-				(int) (THINKING_RANGE_START + sleepRange * Math.random());
+				(int) (THINKING_RANGE_START + sleepRange * Math.random()) + 1;
 		thinkingTimer.schedule(waitingTime);
 	}
 
@@ -492,7 +492,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 				tabContents.get(currentInd).getHTML() + channelToken + "<br />");
 		
 		int eatRange = EATING_RANGE_END - EATING_RANGE_START + 1;
-		int waitingTime = (int) (EATING_RANGE_START + eatRange * Math.random());
+		int waitingTime = (int) (EATING_RANGE_START + eatRange * Math.random()) + 1;
 		eatingTimer.schedule(waitingTime);
 	}
 	
