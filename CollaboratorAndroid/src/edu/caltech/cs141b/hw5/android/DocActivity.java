@@ -1,5 +1,6 @@
 package edu.caltech.cs141b.hw5.android;
 
+import edu.caltech.cs141b.hw5.android.data.LockExpired;
 import edu.caltech.cs141b.hw5.android.data.LockedDocument;
 import edu.caltech.cs141b.hw5.android.data.InvalidRequest;
 import edu.caltech.cs141b.hw5.android.data.LockUnavailable;
@@ -23,6 +24,8 @@ public class DocActivity extends Activity{
 	private UnlockedDocument uDoc;
 	private CollabServiceWrapper service = new CollabServiceWrapper(); 
 	
+	private Button saveButton;
+	private Button lockButton;
 	
 	/** Called when the activity is first created. */
 	public void onCreate(Bundle savedInstanceState) {
@@ -55,45 +58,59 @@ public class DocActivity extends Activity{
 			}
 		});
 		
-		Button lockButton = (Button) findViewById(R.id.Lock);
+		lockButton = (Button) findViewById(R.id.Lock);
 		lockButton.setOnClickListener(new View.OnClickListener() {
 			public void onClick(View view) {
 				lockDocument();
-				statusPane.setText(docKey);
 			}
 		}
 			);
 		
-		Button saveButton = (Button) findViewById(R.id.Save);
+		saveButton = (Button) findViewById(R.id.Save);
 		saveButton.setBackgroundColor(Color.GRAY);
 		saveButton.setEnabled(false);
 		saveButton.setOnClickListener(new View.OnClickListener() {
 			public void onClick(View view) {
-//				CollabServiceWrapper service = new CollabServiceWrapper(); 
-//				lockedDoc.setContents(contents.getText().toString());
-//				lockedDoc.setTitle(contents.getText().toString());
-//				try {
-//					service.saveDocument(lockedDoc);
-//				} catch (LockExpired e) {
-//					statusPane.setText("Lock expired");
-//					e.printStackTrace();
-//				} catch (InvalidRequest e) {
-//					// TODO Auto-generated catch block
-//					e.printStackTrace();
-//				}
+				lDoc.setContents(contents.getText().toString());
+				lDoc.setTitle(title.getText().toString());
+					try {
+						service.saveDocument(lDoc);
+						statusPane.setText("Save successful.");
+						
+						saveButton.setBackgroundColor(Color.GRAY);
+						saveButton.setEnabled(false);
+						
+						// enable lock
+						lockButton.setBackgroundColor(0xFF90E890);
+						lockButton.setEnabled(true);
+						
+					} catch (LockExpired e) {
+						statusPane.setText("Lock expired.");
+						e.printStackTrace();
+					} catch (InvalidRequest e) {
+						statusPane.setText("Error");
+						e.printStackTrace();
+					}
 			}
 		});
-		
 		
 		switch (status){
 		case CollaboratorAndroidActivity.LOAD_DOC:
 			loadDocument();
 			break;
 		case CollaboratorAndroidActivity.NEW_DOC:
-//			LockedDocument lockedDoc = new LockedDocument(null, null, null,
-//					"Enter the document title.",
-//					"New Doc not implemented yet");
-//			service.saveDoc(lockedDoc.get)
+			LockedDocument lockedDoc = new LockedDocument(null, null, null,
+					null,
+					null);
+			try {
+				service.saveDocument(new LockedDocument(null, null, null, null, null));
+			} catch (LockExpired e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InvalidRequest e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			title.setText("Enter the document title.");
 			contents.setText("New Doc not implemented yet");
 			statusPane.setText("New Document created.");
@@ -122,17 +139,23 @@ public class DocActivity extends Activity{
 	
 	private void lockDocument(){
 		try {
-			title.setText(docKey);
 			lDoc = service.lockDocument(docKey);
-//			LockedDocument lockedDocument = service.lockDocument(docKey);
-//			title.setEnabled(true);
-//			contents.setEnabled(true);
-//			statusPane.setText(unlockedDoc.getKey());
+			title.setEnabled(true);
+			contents.setEnabled(true);
+			statusPane.setText("Lock successfully acquired");
+			// re-enable save
+			//saveButton.getBackground().setColorFilter(Color.parseColor("#90E890"), PorterDuff.Mode.DARKEN);
+			saveButton.setBackgroundColor(0xFF90E890);
+			saveButton.setEnabled(true);
+			
+			//disable lock button
+			lockButton.setEnabled(false);
+			lockButton.setBackgroundColor(Color.GRAY);
 		} catch (LockUnavailable e) {
 			statusPane.setText("Could not acquire lock");
 			e.printStackTrace();
 		} catch (InvalidRequest e) {
-			statusPane.setText("Error");
+			statusPane.setText("Error acquiring lock");
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}

@@ -78,8 +78,6 @@ public class CollabServiceWrapper {
 				.setRequestType(RequestType.LOCK_DOCUMENT)
 				.setDocumentKey(key)
 				.build();
-		Log.e(TAG, "key len" + key.length());
-		Log.e(TAG, "Key" + key);
 		
 		RequestTaskAsync reqTask = new RequestTaskAsync();
 		reqTask.execute(request);
