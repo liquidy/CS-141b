@@ -49,8 +49,6 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 			new Hashtable<String, String>();
 	private Hashtable<String, Queue<String>> docToQueue =
 			new Hashtable<String, Queue<String>>();    // Queues are of clientIds
-	private Hashtable<String, Object> docToQueueLocks = 
-			new Hashtable<String, Object>();
 	private Hashtable<String, String> docToTaskNames =
 			new Hashtable<String, String>();
 	private Object instantiationLock = new Object();
@@ -102,9 +100,8 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 		int numPeopleInFront = -1;
 		String clientId = tokenToClient.get(token);
 		lazyInstantiationsForDoc(documentKey);
-		Object queueLock = docToQueueLocks.get(documentKey);
-		synchronized (queueLock) {
-			Queue<String> clientQueue = docToQueue.get(documentKey);
+		Queue<String> clientQueue = docToQueue.get(documentKey);
+		synchronized (clientQueue) {
 			numPeopleInFront = clientQueue.size();
 			clientQueue.add(clientId);
 		}
@@ -121,9 +118,8 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 		
 		// Remove clientId from the document queue.
 		String clientToRemove = tokenToClient.get(token);
-		Object queueLock = docToQueueLocks.get(documentKey);
-		synchronized (queueLock) {
-			Queue<String> clientIds = docToQueue.get(documentKey);
+		Queue<String> clientIds = docToQueue.get(documentKey);
+		synchronized (clientIds) {
 			Iterator<String> clientsItr = clientIds.iterator();
 			int i = 0;
 			while (clientsItr.hasNext()) {
@@ -151,9 +147,8 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 			throws LockUnavailable {
 		
 		// Check the queue to see that we're not cutting someone in line.
-		Object queueLock = docToQueueLocks.get(documentKey);
-		synchronized (queueLock) {
-			Queue<String> clientIds = docToQueue.get(documentKey);
+		Queue<String> clientIds = docToQueue.get(documentKey);
+		synchronized (clientIds) {
 			if (clientIds != null && clientIds.size() != 0 &&
 					!clientIds.peek().equals(tokenToClient.get(token))) {
 				throw new LockUnavailable(true, null, null, clientIds.peek());
@@ -188,7 +183,7 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 			}
 			if (!lockAvailable) {
 				// Determine if exception was thrown because of timestamps or creds.
-				throw new LockUnavailable(!token.equals(lockedBy),
+				throw new LockUnavailable(false,
 						persistedDoc.getLockedUntil(), 
 						KeyFactory.keyToString(persistedDoc.getKey()),
 						lockedBy); 
@@ -211,6 +206,7 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 					.url("/task/lockExpiration")
 					.param("docKey", keyStr)
 					.taskName(taskName));
+			docToTaskNames.put(keyStr, taskName);
 			
 			return new LockedDocument(
 	        persistedDoc.getLockedBy(), 
@@ -379,9 +375,8 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 	
 	protected void pollDocQueue(String documentKey, boolean lockExpired) {
 		// Update queue for the doc.
-		Object queueLock = docToQueueLocks.get(documentKey);
-		synchronized (queueLock) {
-			Queue<String> clientIds = docToQueue.get(documentKey);
+		Queue<String> clientIds = docToQueue.get(documentKey);
+		synchronized (clientIds) {
 			String clientId = clientIds.poll();
 			if (clientId != null) {
 				if (lockExpired) {
@@ -411,15 +406,11 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 	}
 	
 	private void lazyInstantiationsForDoc(String documentKey) {
-		if (documentKey == null || documentKey.isEmpty())
-			return;
-		
 		// Lazy instantiation for the queues and corresponding locks.
 		if (!docToQueue.containsKey(documentKey)) {
 			synchronized (instantiationLock) {
 				if (!docToQueue.containsKey(documentKey)) {
 					docToQueue.put(documentKey, new ArrayDeque<String>());
-					docToQueueLocks.put(documentKey, new Object());
 				}
 			}
 		}

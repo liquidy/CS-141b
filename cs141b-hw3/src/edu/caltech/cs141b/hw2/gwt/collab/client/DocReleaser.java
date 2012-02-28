@@ -40,6 +40,7 @@ public class DocReleaser implements AsyncCallback<String> {
 	public void onSuccess(String docKey) {
 		collaborator.statusUpdate("Document lock released.");
 		collaborator.updateVarsAndUi(docKey, UiState.VIEWING);
+		collaborator.reader.getDocument(docKey);
 	}
 	
 }
