@@ -36,9 +36,9 @@ public class DocSaver implements AsyncCallback<UnlockedDocument> {
 			}
 			collaborator.updateVarsAndUi(caughtEx.getKey(), UiState.VIEWING);
 		} else {
-			collaborator.statusUpdate("Error saving document"
-					+ "; caught exception " + caught.getClass()
-					+ " with message: " + caught.getMessage());
+			collaborator.statusUpdate("Error saving document" +
+					"; caught exception " + caught.getClass() +
+					" with message: " + caught.getMessage());
 			GWT.log("Error saving document.", caught);
 		}
 	}
@@ -47,13 +47,15 @@ public class DocSaver implements AsyncCallback<UnlockedDocument> {
 	public void onSuccess(UnlockedDocument result) {
 		collaborator.statusUpdate("Document '" + result.getTitle()
 				+ "' successfully saved.");
-		
 		collaborator.updateVarsAndUi(result.getKey(),
 				result.getTitle(),
 				result.getContents(),
 				UiState.VIEWING);
-		
 		// Refresh list in case title was changed.
 		collaborator.lister.getDocumentList();
+		
+		if (collaborator.simulating) {
+			collaborator.simulateThinking();
+		}
 	}
 }

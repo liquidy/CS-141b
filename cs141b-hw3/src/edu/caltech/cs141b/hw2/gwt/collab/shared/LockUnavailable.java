@@ -9,7 +9,7 @@ import java.util.Date;
  */
 public class LockUnavailable extends Exception {
 
-	private boolean wrongCredentials = false;
+	private boolean wrongQueueCredentials = false;
 	private Date lockedUntil = null;
 	private String key = null;
 	private String credentials = null;
@@ -23,22 +23,22 @@ public class LockUnavailable extends Exception {
 		super(message);
 	}
 	
-	public LockUnavailable(boolean wrongCredentials, Date lockedUntil, String key,
+	public LockUnavailable(boolean wrongQueueCredentials, Date lockedUntil, String key,
 			String credentials) {
 		
 		super("Doc key: " + key + 
 				", Locked until: " + lockedUntil + 
-				", Wrong credentials: " + wrongCredentials +
+				", Wrong queue credentials: " + wrongQueueCredentials +
 				", Locked by: " + credentials);
 		
-		this.wrongCredentials = wrongCredentials;
+		this.wrongQueueCredentials = wrongQueueCredentials;
 		this.lockedUntil = lockedUntil;
 		this.key = key;
 		this.credentials = credentials;
 	}
 	
-	public boolean getWrongCredentials() {
-		return wrongCredentials;
+	public boolean getWrongQueueCredentials() {
+		return wrongQueueCredentials;
 	}
 	
 	public Date getLockedUntil() {

@@ -24,14 +24,9 @@ public class DocLocker implements AsyncCallback<LockedDocument> {
 	public void onFailure(Throwable caught) {
 		if (caught instanceof LockUnavailable) {
 			LockUnavailable caughtEx = ((LockUnavailable) caught);
-			if (caughtEx.getWrongCredentials()) {
-				collaborator.statusUpdate("Lock is available, but you have the" +
-						" wrong credentials; save failed. It's locked by: " + 
-						caughtEx.getCredentials());
-			} else {
-				collaborator.statusUpdate("Lock is unavailable; save failed. " +
-						"It's locked until " + caughtEx.getLockedUntil());
-			}
+			collaborator.statusUpdate("Lock is unavailable. Are you at the front " +
+					"of the queue: " + !caughtEx.getWrongQueueCredentials() +
+					". Locked until: " + caughtEx.getLockedUntil() + ".");
 			collaborator.updateVarsAndUi(caughtEx.getKey(), UiState.VIEWING);
 		} else {
 			collaborator.statusUpdate("Error retrieving lock"

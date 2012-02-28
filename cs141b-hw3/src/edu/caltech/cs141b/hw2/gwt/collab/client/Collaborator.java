@@ -91,6 +91,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	protected ArrayList<TextBox> tabTitles = new ArrayList<TextBox>();
 	protected ArrayList<Integer> tabQueueLengths = new ArrayList<Integer>();
 	protected ArrayList<UiState> uiStates = new ArrayList<UiState>();
+	protected boolean channelIsSetup = false;
 	protected String channelToken = null;
 	protected boolean simulating = false;
 	protected Timer thinkingTimer = null;
@@ -203,7 +204,6 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 						tabKeys.get(currentTabInd), tabTitles.get(currentTabInd).getValue(), 
 						tabContents.get(currentTabInd).getHTML());
 				saver.saveDocument(lockedDoc);
-				simulateThinking();
 			}
 		};
 	}
@@ -215,7 +215,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	@Override
 	public void onClick(ClickEvent event) {
 		// Channel is not set up yet, so don't let the user do anything.
-		if (channelToken == null) {
+		if (!channelIsSetup) {
 			Window.alert("Please wait while the channel is established. " +
 					"If this takes more than a few seconds, try refreshing the page.");
 			return;
@@ -275,6 +275,9 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 
 				simulateThinking();
 			} else {
+				thinkingTimer.cancel();
+				eatingTimer.cancel();
+				
 				statusUpdate("Stopped simulating.");
 				int currentTabInd = tb.getSelectedTab();
 				setUiState(uiStates.get(currentTabInd));
@@ -283,9 +286,6 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 				for (int i = 0; i < tb.getTabCount(); i++) {
 					tb.setTabEnabled(i, true);
 				}
-				
-				thinkingTimer.cancel();
-				eatingTimer.cancel();
 			}
 		}
 	}
@@ -324,6 +324,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 					@Override
 					public void onOpen() {
 						statusUpdate("Channel successfully opened!");
+						channelIsSetup = true;
 					}
 					@Override
 					public void onMessage(String message) {
@@ -332,6 +333,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 							// Doc is ready to be locked. The rest of the string is doc ID.
 							String docKey = message.substring(1).replaceAll("\\s", "");
 							if (tabIsSelected() && tabKeys.contains(docKey)) {
+								statusUpdate("Update: " + docKey + " is ready to be locked.");
 								locker.lockDocument(docKey);
 							}
 						} else if (messageType == Messages.CODE_LOCK_NOT_READY) {
@@ -344,10 +346,10 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 									restOfString.substring(0, delimiter));
 							String docId = restOfString.substring(delimiter + 1);
 							docId = docId.replaceAll("\\s", "");
-							statusUpdate("Update: " + numPeopleLeft + " people are now" +
-									" ahead of you for document " + docId + ".");
 							int indOfDoc = tabKeys.indexOf(docId);
 							if (tabIsSelected() && indOfDoc != -1) {
+								statusUpdate("Update: " + numPeopleLeft + " people are now" +
+										" ahead of you for document " + docId + ".");
 								tabQueueLengths.set(indOfDoc, numPeopleLeft);
 								queueStatus.setHTML("<br />Position " +
 										numPeopleLeft + " in line");
@@ -481,18 +483,18 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	protected void simulateThinking() {
 		int sleepRange = THINKING_RANGE_END - THINKING_RANGE_START + 1;
 		int waitingTime = 
-				(int) (THINKING_RANGE_START + sleepRange * Math.random());
+				(int) (THINKING_RANGE_START + sleepRange * Math.random()) + 1;
 		thinkingTimer.schedule(waitingTime);
 	}
 
 	protected void simulateEating() {
-		// Write token into the document.
 		int currentInd = tb.getSelectedTab();
+		// Write client's token into the document.
 		tabContents.get(currentInd).setHTML(
 				tabContents.get(currentInd).getHTML() + channelToken + "<br />");
-		
+
 		int eatRange = EATING_RANGE_END - EATING_RANGE_START + 1;
-		int waitingTime = (int) (EATING_RANGE_START + eatRange * Math.random());
+		int waitingTime = (int) (EATING_RANGE_START + eatRange * Math.random()) + 1;
 		eatingTimer.schedule(waitingTime);
 	}
 	
