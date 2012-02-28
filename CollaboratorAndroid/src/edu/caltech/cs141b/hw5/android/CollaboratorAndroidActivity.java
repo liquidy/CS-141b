@@ -65,6 +65,9 @@ public class CollaboratorAndroidActivity extends Activity {
 			}
 		});
 
+		TextView instructions = (TextView) findViewById(R.id.Instructions);
+		instructions.setText("Select a document to begin.");
+		
 		Button refresh = (Button) findViewById(R.id.Refresh);
 		Button newDoc = (Button) findViewById(R.id.NewDoc);
 
@@ -88,11 +91,7 @@ public class CollaboratorAndroidActivity extends Activity {
 
 	protected void onActivityResult(int requestCode, int resultCode,
 			Intent data) {
-		if (requestCode == DOC_CHANGED) {
-			if (resultCode == RESULT_OK) {
-				refreshDocumentList();
-			}
-		}
+		refreshDocumentList();
 	}
 
 	public void refreshDocumentList(){

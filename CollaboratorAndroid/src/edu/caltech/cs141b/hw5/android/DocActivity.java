@@ -32,7 +32,6 @@ public class DocActivity extends Activity{
 	private Button lockButton;
 	private Button reloadButton;
 
-	private boolean editEnabled = false;
 	private boolean lockReleasable = false;
 	private int status;
 
@@ -149,7 +148,7 @@ public class DocActivity extends Activity{
 			lDoc = service.lockDocument(uDoc.getKey());
 			statusPane.setText("Lock successfully acquired");
 			enableEditing();
-			this.lockReleasable = true;
+			lockReleasable = true;
 		} catch (LockUnavailable e) {
 			statusPane.setText("Could not acquire lock");
 			e.printStackTrace();
@@ -164,7 +163,6 @@ public class DocActivity extends Activity{
 	private void enableEditing(){
 		title.setEnabled(true);
 		contents.setEnabled(true);
-		this.editEnabled = true;
 
 		// re-enable save
 		saveButton.setBackgroundColor(0xFF90E890);
@@ -177,7 +175,6 @@ public class DocActivity extends Activity{
 	private void disableEditing(){
 		title.setEnabled(false);
 		contents.setEnabled(false);
-		this.editEnabled = false;
 
 		// can't save
 		saveButton.setBackgroundColor(Color.GRAY);
