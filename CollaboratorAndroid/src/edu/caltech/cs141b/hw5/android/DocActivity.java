@@ -1,5 +1,6 @@
 package edu.caltech.cs141b.hw5.android;
 
+import edu.caltech.cs141b.hw5.android.data.LockExpired;
 import edu.caltech.cs141b.hw5.android.data.LockedDocument;
 import edu.caltech.cs141b.hw5.android.data.InvalidRequest;
 import edu.caltech.cs141b.hw5.android.data.LockUnavailable;
@@ -13,128 +14,194 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import android.util.Log;
+import java.util.Date;
 
 public class DocActivity extends Activity{
 	private EditText title;
 	private EditText contents;
 	private TextView statusPane;
 	private String docKey;
-	private LockedDocument lockedDoc;
-	private UnlockedDocument unlockedDoc;
+	private LockedDocument lDoc;
+	private UnlockedDocument uDoc;
 	private CollabServiceWrapper service = new CollabServiceWrapper(); 
-	
-	
+
+	private Button saveButton;
+	private Button lockButton;
+	private Button reloadButton;
+
+	private boolean editEnabled = false;
+	private boolean lockReleasable = false;
+	private int status;
+
 	/** Called when the activity is first created. */
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.doclayout);
-		
+
 		Bundle b = getIntent().getExtras();
-		this.docKey = b.getString("document key");
-		int status = b.getInt("status code");
-		
+		status = b.getInt("status code");
+
 		title = (EditText) findViewById(R.id.Title);
 		contents = (EditText) findViewById(R.id.Contents);
 		statusPane = (TextView) findViewById(R.id.Status);
-		
+
 		Button closeButton = (Button) findViewById(R.id.Close);
 		closeButton.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View view) {
+				releaseIfLocked();
 				Intent intent = new Intent();
 				setResult(RESULT_OK, intent);
 				finish();
 			}
 		});
-		
-		Button reloadButton = (Button) findViewById(R.id.Reload);
+
+		reloadButton = (Button) findViewById(R.id.Reload);
 		reloadButton.setOnClickListener(new View.OnClickListener() {
 			public void onClick(View view) {
+				releaseIfLocked();
 				loadDocument();
-				statusPane.setText("Document reloaded successfully");
+				statusPane.setText("Document reloaded successfully.");
 			}
 		});
-		
-		Button lockButton = (Button) findViewById(R.id.Lock);
+
+		lockButton = (Button) findViewById(R.id.Lock);
 		lockButton.setOnClickListener(new View.OnClickListener() {
 			public void onClick(View view) {
-				lockDocument();
-				statusPane.setText(docKey);
+				if (lockReleasable){
+					releaseIfLocked();
+				} else{
+					lockDocument();
+				}
 			}
 		}
-			);
-		
-		Button saveButton = (Button) findViewById(R.id.Save);
-		saveButton.setBackgroundColor(Color.GRAY);
-		saveButton.setEnabled(false);
+				);
+
+		saveButton = (Button) findViewById(R.id.Save);
 		saveButton.setOnClickListener(new View.OnClickListener() {
 			public void onClick(View view) {
-//				CollabServiceWrapper service = new CollabServiceWrapper(); 
-//				lockedDoc.setContents(contents.getText().toString());
-//				lockedDoc.setTitle(contents.getText().toString());
-//				try {
-//					service.saveDocument(lockedDoc);
-//				} catch (LockExpired e) {
-//					statusPane.setText("Lock expired");
-//					e.printStackTrace();
-//				} catch (InvalidRequest e) {
-//					// TODO Auto-generated catch block
-//					e.printStackTrace();
-//				}
+				lDoc.setContents(contents.getText().toString());
+				lDoc.setTitle(title.getText().toString());
+				try {
+					uDoc = service.saveDocument(lDoc);
+					docKey = uDoc.getKey();
+					statusPane.setText("Save successful.");
+					disableEditing();
+					lockReleasable = false;
+					if (status == CollaboratorAndroidActivity.NEW_DOC){
+						reloadButton.setEnabled(true);
+						reloadButton.setBackgroundColor(0xFF90E890);	
+						lockButton.setEnabled(true);
+						lockButton.setBackgroundColor(0xFF90E890);
+						status = CollaboratorAndroidActivity.LOAD_DOC;
+					}
+				} catch (LockExpired e) {
+					statusPane.setText("Lock expired.");
+					e.printStackTrace();
+				} catch (InvalidRequest e) {
+					statusPane.setText("Error");
+					e.printStackTrace();
+				}
 			}
 		});
-		
-		
+
 		switch (status){
 		case CollaboratorAndroidActivity.LOAD_DOC:
+			this.docKey = b.getString("document key");
 			loadDocument();
 			break;
 		case CollaboratorAndroidActivity.NEW_DOC:
-//			LockedDocument lockedDoc = new LockedDocument(null, null, null,
-//					"Enter the document title.",
-//					"New Doc not implemented yet");
-//			service.saveDoc(lockedDoc.get)
+			lDoc = new LockedDocument(null, null, null,
+					null,
+					null);
 			title.setText("Enter the document title.");
-			contents.setText("New Doc not implemented yet");
-			statusPane.setText("New Document created.");
-//			title.setEnabled(true);
-//			contents.setEnabled(true);
+			contents.setText("Enter document contents.");
+			statusPane.setText("Save to create new document.");
+			reloadButton.setEnabled(false);
+			reloadButton.setBackgroundColor(Color.GRAY);
+			enableEditing();
+			lockButton.setEnabled(false);
+			lockButton.setBackgroundColor(Color.GRAY);
+			this.lockReleasable = false;
 			break;
 		}
-     
-
 	}
-	
+
 	private void loadDocument(){
 		try {
-			unlockedDoc = service.getDocument(docKey);
-			title.setText(unlockedDoc.getTitle());
-			contents.setText(unlockedDoc.getContents());
+			uDoc = service.getDocument(docKey);
+			title.setText(uDoc.getTitle());
+			contents.setText(uDoc.getContents());
 			statusPane.setText("Document loaded successfully");
-			title.setEnabled(false);
-			contents.setEnabled(false);
+			disableEditing();
+			lockReleasable = false;
 		} catch (InvalidRequest e) {
 			statusPane.setText("Error loading document");
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
-	
+
 	private void lockDocument(){
 		try {
-			title.setText(docKey);
-			lockedDoc = service.lockDocument(docKey);
-//			LockedDocument lockedDocument = service.lockDocument(docKey);
-//			title.setEnabled(true);
-//			contents.setEnabled(true);
-//			statusPane.setText(unlockedDoc.getKey());
+			lDoc = service.lockDocument(uDoc.getKey());
+			statusPane.setText("Lock successfully acquired");
+			enableEditing();
+			this.lockReleasable = true;
 		} catch (LockUnavailable e) {
 			statusPane.setText("Could not acquire lock");
 			e.printStackTrace();
 		} catch (InvalidRequest e) {
-			statusPane.setText("Error");
+			statusPane.setText("Error acquiring lock");
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		}
+	}
+
+	// when editing is enabled, have lock.
+	private void enableEditing(){
+		title.setEnabled(true);
+		contents.setEnabled(true);
+		this.editEnabled = true;
+
+		// re-enable save
+		saveButton.setBackgroundColor(0xFF90E890);
+		saveButton.setEnabled(true);
+
+		//disable lock button
+		lockButton.setText("Unlock");
+	}
+
+	private void disableEditing(){
+		title.setEnabled(false);
+		contents.setEnabled(false);
+		this.editEnabled = false;
+
+		// can't save
+		saveButton.setBackgroundColor(Color.GRAY);
+		saveButton.setEnabled(false);
+
+		// enable lock
+		lockButton.setBackgroundColor(0xFF90E890);
+		lockButton.setText("Lock");
+	}
+
+	private void releaseIfLocked(){
+		// release the lock if there is one
+		if (lockReleasable){
+			try {
+				service.releaseLock(lDoc);
+				disableEditing();
+				statusPane.setText("Lock released");
+			} catch (LockExpired e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InvalidRequest e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 	}
 }
