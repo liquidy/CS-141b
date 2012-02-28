@@ -227,7 +227,7 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 				throw new LockExpired();
 			} else {
 				// Release the lock on the document; update lockedBy and lockedUntil.
-				persistedDoc.setLockedBy(getThreadLocalRequest().getRemoteAddr());
+				persistedDoc.setLockedBy(ip);
 				persistedDoc.setLockedUntil(currentDate);
 				pm.makePersistent(persistedDoc);
 			}
