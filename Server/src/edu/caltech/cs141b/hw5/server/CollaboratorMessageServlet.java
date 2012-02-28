@@ -11,8 +11,8 @@ import javax.servlet.http.HttpServletResponse;
 import edu.caltech.cs141b.hw5.data.CollabMessages.RequestMessage;
 import edu.caltech.cs141b.hw5.data.CollabMessages.ResponseMessage;
 import edu.caltech.cs141b.hw5.data.CollabMessages.StatusType;
-import edu.caltech.cs141b.hw5.gwt.collab.server.CollaboratorServiceImpl;
 import edu.caltech.cs141b.hw5.gwt.collab.shared.DataConverter;
+import edu.caltech.cs141b.hw5.gwt.collab.server.CollaboratorServiceImpl;
 import edu.caltech.cs141b.hw5.gwt.collab.shared.DocumentMetadata;
 import edu.caltech.cs141b.hw5.gwt.collab.shared.LockExpired;
 import edu.caltech.cs141b.hw5.gwt.collab.shared.LockUnavailable;
@@ -91,7 +91,7 @@ public class CollaboratorMessageServlet extends HttpServlet {
 					if (request.hasDocumentKey()) {
 						try {
 							LockedDocument doc = collabService.lockDocument(
-									request.getDocumentKey());
+									request.getDocumentKey(), ip);
 							builder.setStatusType(StatusType.SUCCESS);
 							builder.setLockedDoc(DataConverter.buildLockedDocumentInfo(doc));
 						} catch (LockUnavailable e) {
@@ -117,7 +117,7 @@ public class CollaboratorMessageServlet extends HttpServlet {
 					if (request.hasLockedDoc()) {
 						try {
 							UnlockedDocument doc = collabService.saveDocument(
-									DataConverter.buildLockedDocument(request.getLockedDoc()));
+									DataConverter.buildLockedDocument(request.getLockedDoc()), ip);
 							builder.setUnlockedDoc(DataConverter.buildUnlockedDocumentInfo(doc));
 							builder.setStatusType(StatusType.SUCCESS);
 						} catch (LockExpired e) {
@@ -133,7 +133,7 @@ public class CollaboratorMessageServlet extends HttpServlet {
 					if (request.hasLockedDoc()) {
 						try {
 							collabService.releaseLock(DataConverter.buildLockedDocument(
-									request.getLockedDoc()));
+									request.getLockedDoc()), ip);
 							builder.setStatusType(StatusType.SUCCESS);
 						} catch (LockExpired e) {
 							builder.setStatusType(StatusType.LOCK_EXPIRED);
