@@ -34,6 +34,7 @@ public class DocActivity extends Activity{
 
 	private boolean editEnabled = false;
 	private boolean lockReleasable = false;
+	private int status;
 
 	/** Called when the activity is first created. */
 	public void onCreate(Bundle savedInstanceState) {
@@ -41,7 +42,7 @@ public class DocActivity extends Activity{
 		setContentView(R.layout.doclayout);
 
 		Bundle b = getIntent().getExtras();
-		int status = b.getInt("status code");
+		status = b.getInt("status code");
 
 		title = (EditText) findViewById(R.id.Title);
 		contents = (EditText) findViewById(R.id.Contents);
@@ -70,7 +71,11 @@ public class DocActivity extends Activity{
 		lockButton = (Button) findViewById(R.id.Lock);
 		lockButton.setOnClickListener(new View.OnClickListener() {
 			public void onClick(View view) {
-				lockDocument();
+				if (lockReleasable){
+					releaseIfLocked();
+				} else{
+					lockDocument();
+				}
 			}
 		}
 				);
@@ -86,9 +91,12 @@ public class DocActivity extends Activity{
 					statusPane.setText("Save successful.");
 					disableEditing();
 					lockReleasable = false;
-					if (!reloadButton.isEnabled()){
+					if (status == CollaboratorAndroidActivity.NEW_DOC){
 						reloadButton.setEnabled(true);
 						reloadButton.setBackgroundColor(0xFF90E890);	
+						lockButton.setEnabled(true);
+						lockButton.setBackgroundColor(0xFF90E890);
+						status = CollaboratorAndroidActivity.LOAD_DOC;
 					}
 				} catch (LockExpired e) {
 					statusPane.setText("Lock expired.");
@@ -114,18 +122,17 @@ public class DocActivity extends Activity{
 			statusPane.setText("Save to create new document.");
 			reloadButton.setEnabled(false);
 			reloadButton.setBackgroundColor(Color.GRAY);
-
 			enableEditing();
+			lockButton.setEnabled(false);
+			lockButton.setBackgroundColor(Color.GRAY);
 			this.lockReleasable = false;
 			break;
 		}
-
-
 	}
 
 	private void loadDocument(){
 		try {
-			uDoc = service.getDocument(uDoc.getKey());
+			uDoc = service.getDocument(docKey);
 			title.setText(uDoc.getTitle());
 			contents.setText(uDoc.getContents());
 			statusPane.setText("Document loaded successfully");
@@ -164,8 +171,7 @@ public class DocActivity extends Activity{
 		saveButton.setEnabled(true);
 
 		//disable lock button
-		lockButton.setEnabled(false);
-		lockButton.setBackgroundColor(Color.GRAY);
+		lockButton.setText("Unlock");
 	}
 
 	private void disableEditing(){
@@ -179,7 +185,7 @@ public class DocActivity extends Activity{
 
 		// enable lock
 		lockButton.setBackgroundColor(0xFF90E890);
-		lockButton.setEnabled(true);
+		lockButton.setText("Lock");
 	}
 
 	private void releaseIfLocked(){
