@@ -22,6 +22,7 @@ import java.io.FileNotFoundException;
 import java.util.Date;
 
 public class DocActivity extends Activity{
+	public static final int ACTIVE_BUTTON_COLOR = 0xFF90E890;
 	private EditText title;
 	private EditText contents;
 	private TextView statusPane;
@@ -86,32 +87,35 @@ public class DocActivity extends Activity{
 			public void onClick(View view) {
 				lDoc.setContents(contents.getText().toString());
 				lDoc.setTitle(title.getText().toString());
+				boolean success = true;
 				try {
 					uDoc = null;
 					uDoc = service.saveDocument(lDoc);	
 				} catch (LockExpired e) {
 					statusPane.setText("Lock expired.");
+					success = false;
 					e.printStackTrace();
 				} catch (InvalidRequest e) {
 					statusPane.setText("Error");
+					success = false;
 					e.printStackTrace();
 				} finally {
 					loadDocument();
-				}
-				if (uDoc != null){
 					disableEditing();
 					lockReleasable = false;
+				}
+				if (success){
 					if (status == CollaboratorAndroidActivity.NEW_DOC){
 						docKey = uDoc.getKey();
 						reloadButton.setEnabled(true);
-						reloadButton.setBackgroundColor(0xFF90E890);	
+						reloadButton.setBackgroundColor(ACTIVE_BUTTON_COLOR);	
 						lockButton.setEnabled(true);
-						lockButton.setBackgroundColor(0xFF90E890);
+						lockButton.setBackgroundColor(ACTIVE_BUTTON_COLOR);
 						status = CollaboratorAndroidActivity.LOAD_DOC;
 					}
 					statusPane.setText("Save successful.");				
 				} else {
-					statusPane.setText("Lock expired.");
+					statusPane.setText("Lock expired; changes deleted.");
 				}
 			}
 		});
@@ -176,11 +180,11 @@ public class DocActivity extends Activity{
 		contents.setEnabled(true);
 
 		// re-enable save
-		saveButton.setBackgroundColor(0xFF90E890);
+		saveButton.setBackgroundColor(ACTIVE_BUTTON_COLOR);
 		saveButton.setEnabled(true);
 
 		//disable lock button
-		lockButton.setText("Unlock");
+		lockButton.setText("Release");
 	}
 
 	private void disableEditing(){
@@ -192,26 +196,31 @@ public class DocActivity extends Activity{
 		saveButton.setEnabled(false);
 
 		// enable lock
-		lockButton.setBackgroundColor(0xFF90E890);
+		lockButton.setBackgroundColor(ACTIVE_BUTTON_COLOR);
 		lockButton.setText("Lock");
 	}
 
 	private void releaseIfLocked(){
 		// release the lock if there is one
+		boolean success = true;
 		if (lockReleasable){
 			try {
 				service.releaseLock(lDoc);
 			} catch (LockExpired e) {
-				// TODO Auto-generated catch block
+				statusPane.setText("Lock expired; changes deleted.");
+				success = false;
 				e.printStackTrace();
 			} catch (InvalidRequest e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} finally {
 				disableEditing();
-				statusPane.setText("Lock released");
+				loadDocument();
 				lockReleasable = false;
 			}
+			if (success){
+				statusPane.setText("Lock released; changes deleted.");
+			} 
 		}
 	}
 }
