@@ -96,7 +96,6 @@ public class CollaboratorMessageServlet extends HttpServlet {
 							builder.setLockedDoc(DataConverter.buildLockedDocumentInfo(doc));
 						} catch (LockUnavailable e) {
 							builder.setStatusType(StatusType.LOCK_UNAVAILABLE);
-							builder.setMessage(e.getMessage());
 						}
 					} else {
 						builder.setStatusType(StatusType.INVALID_REQUEST);
@@ -122,7 +121,6 @@ public class CollaboratorMessageServlet extends HttpServlet {
 							builder.setStatusType(StatusType.SUCCESS);
 						} catch (LockExpired e) {
 							builder.setStatusType(StatusType.LOCK_EXPIRED);
-							builder.setMessage(e.getMessage());
 						}
 					} else {
 						builder.setStatusType(StatusType.INVALID_REQUEST);
