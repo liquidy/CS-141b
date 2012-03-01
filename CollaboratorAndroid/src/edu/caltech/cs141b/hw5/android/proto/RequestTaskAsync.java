@@ -29,8 +29,7 @@ public class RequestTaskAsync extends AsyncTask<RequestMessage, String, Response
 	 * 
 	 * In DEVELOPMENT mode: replace the hostname with your app engine hostname.
 	 */	
-	private static final String address = "http://10.2.6.204:8888/collab/protoc"; 
-//	   private static final String address = "http://5manithreads.appspot.com/collab/protoc"; 
+	private static final String address = "http://5manithreads.appspot.com/collab/protoc"; 
 	
     @Override
     protected ResponseMessage doInBackground(RequestMessage... inputs) {	

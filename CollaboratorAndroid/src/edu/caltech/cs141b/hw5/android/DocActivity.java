@@ -87,38 +87,32 @@ public class DocActivity extends Activity{
             public void onClick(View view) {
                 lDoc.setContents(contents.getText().toString());
                 lDoc.setTitle(title.getText().toString());
-                boolean success = true;
                 try {
                     uDoc = service.saveDocument(lDoc);	
                     if ((uDoc != null) && (docKey == null)){
                         docKey = uDoc.getKey();
                     }
+                    if (status == CollaboratorAndroidActivity.NEW_DOC){
+                        docKey = uDoc.getKey();
+                        reloadButton.setEnabled(true);
+                        reloadButton.setBackgroundColor(ACTIVE_BUTTON_COLOR);   
+                        lockButton.setEnabled(true);
+                        lockButton.setBackgroundColor(ACTIVE_BUTTON_COLOR);
+                        status = CollaboratorAndroidActivity.LOAD_DOC;
+                    }
                     statusPane.setText("Save successful.");     
                 } catch (LockExpired e) {
-                    statusPane.setText("Lock expired.");
-                    success = false;
+                    statusPane.setText("Lock expired; changes deleted.");
                     e.printStackTrace();
                 } catch (InvalidRequest e) {
                     statusPane.setText("Error");
-                    success = false;
                     e.printStackTrace();
                 } finally {
                     loadDocument();
                     disableEditing();
                     lockReleasable = false;
                 }
-                if (success){
-                    if (status == CollaboratorAndroidActivity.NEW_DOC){
-                        docKey = uDoc.getKey();
-                        reloadButton.setEnabled(true);
-                        reloadButton.setBackgroundColor(ACTIVE_BUTTON_COLOR);	
-                        lockButton.setEnabled(true);
-                        lockButton.setBackgroundColor(ACTIVE_BUTTON_COLOR);
-                        status = CollaboratorAndroidActivity.LOAD_DOC;
-                    }
-                } else {
-                    statusPane.setText("Lock expired; changes deleted.");
-                }
+
             }
         });
 
