@@ -197,7 +197,7 @@ implements CollaboratorService {
 			Date currentDate = new Date();
 			Date lockedUntil = persistedDoc.getLockedUntil();
 			String ipAddress = getThreadLocalRequest().getRemoteAddr();
-			String lockedBy = doc.getLockedBy();
+			String lockedBy = persistedDoc.getLockedBy();
 			// A lock is not expired if: 
 			// 1) lockedUntil is set AND after now, AND
 			// 2) lockedBy is set AND is this user
