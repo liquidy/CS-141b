@@ -258,13 +258,12 @@ implements CollaboratorService {
 			} else {
 				Date currentDate = new Date();
 				Date lockedUntil = persistedDoc.getLockedUntil();
-				String ipAddress = getThreadLocalRequest().getRemoteAddr();
 				String lockedBy = persistedDoc.getLockedBy();
 				// A lock is not expired if: 
 				// 1) lockedUntil is set AND after now, AND
 				// 2) lockedBy is set AND is this user
 				if (!((lockedUntil != null && currentDate.before(lockedUntil)) &&
-						(lockedBy != null && lockedBy.equals(ipAddress)))) {
+						(lockedBy != null && lockedBy.equals(token)))) {
 					throw new LockExpired(keyStr);
 				}
 
@@ -314,13 +313,12 @@ implements CollaboratorService {
 			// saving and unlocking the document.
 			Date currentDate = new Date();
 			Date lockedUntil = persistedDoc.getLockedUntil();
-			String ipAddress = getThreadLocalRequest().getRemoteAddr();
-			String lockedBy = doc.getLockedBy();
+			String lockedBy = persistedDoc.getLockedBy();
 			// A lock is not expired if: 
 			// 1) lockedUntil is set AND after now, AND
 			// 2) lockedBy is set AND is this user
 			if (!((lockedUntil != null && currentDate.before(lockedUntil)) &&
-					(lockedBy != null && lockedBy.equals(ipAddress)))) {
+					(lockedBy != null && lockedBy.equals(token)))) {
 				throw new LockExpired(keyStr);
 			}
 
