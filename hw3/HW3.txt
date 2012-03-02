@@ -1,0 +1,36 @@
+Sasha Boulgakov
+Annie Chin
+Kevin Lo
+
+App Engine app: 3manithreads.appspot.com
+Git repository: https://github.com/liquidy/CS-141b
+
+We decided to keep things relatively simple; we have two main columns in our
+UI. The left column consists of a list of documents as well as a couple of
+buttons for things that can be done directly from the document list view
+(e.g. adding a document, refreshing the doc list). At first we had text buttons,
+but discovered that it seemed to take up too much space and also wasn't as
+elegant as icons on buttons. Similarly, for the buttons on the doc editor in
+the right column, we decided to go with a large icon approach that looks more
+visually appealing, less cluttered, and reasonably efficient.
+
+One other small UI detail that we intentionally put in is that many of the
+actions corresponding to buttons actually block out certain buttons, giving the
+user the sense there is an ongoing query. It also gives the user a sense of when
+a query has completed, which makes for a more responsive UI.(This could be 
+replaced with a progress indicator in the future.)
+
+
+
+User feedback:
+
+Caroline:
+Document should be unlocked right after creation.
+It's simple (which is good).
+The icons are nice.
+Probably should unlock the document right after creation.
+The orange highlighting when a button is clicked is nice.
+
+Bobo:
+Everything works.
+Once i figured it out, i had a pretty clear idea of how to 
