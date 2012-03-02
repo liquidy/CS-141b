@@ -9,10 +9,10 @@ import java.util.Date;
  */
 public class LockUnavailable extends Exception {
 
-	private boolean wrongQueueCredentials = false;
+	private boolean frontOfQueue = false;
 	private Date lockedUntil = null;
 	private String key = null;
-	private String credentials = null;
+	private String lockedBy = null;
 	
 	private static final long serialVersionUID = -8039330302911776861L;
 	
@@ -23,22 +23,19 @@ public class LockUnavailable extends Exception {
 		super(message);
 	}
 	
-	public LockUnavailable(boolean wrongQueueCredentials, Date lockedUntil, String key,
-			String credentials) {
+	public LockUnavailable(boolean frontOfQueue,
+			String key,
+			Date lockedUntil,
+			String lockedBy) {
 		
-		super("Doc key: " + key + 
-				", Locked until: " + lockedUntil + 
-				", Wrong queue credentials: " + wrongQueueCredentials +
-				", Locked by: " + credentials);
-		
-		this.wrongQueueCredentials = wrongQueueCredentials;
+		this.frontOfQueue = frontOfQueue;
 		this.lockedUntil = lockedUntil;
 		this.key = key;
-		this.credentials = credentials;
+		this.lockedBy = lockedBy;
 	}
 	
-	public boolean getWrongQueueCredentials() {
-		return wrongQueueCredentials;
+	public boolean frontOfQueue() {
+		return frontOfQueue;
 	}
 	
 	public Date getLockedUntil() {
@@ -49,8 +46,8 @@ public class LockUnavailable extends Exception {
 		return key;
 	}
 	
-	public String getCredentials() {
-		return credentials;
+	public String getLockedBy() {
+		return lockedBy;
 	}
 }
 

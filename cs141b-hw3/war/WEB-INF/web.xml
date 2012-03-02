@@ -15,6 +15,15 @@
     <servlet-class>edu.caltech.cs141b.hw2.gwt.collab.server.LockExpirationTaskServlet</servlet-class>
   </servlet>
   
+  <security-constraint>
+  	<web-resource-collection>
+    	<url-pattern>/task/*</url-pattern>
+   	</web-resource-collection>
+    <auth-constraint>
+      <role-name>admin</role-name>
+    </auth-constraint>
+  </security-constraint>
+  
   <servlet-mapping>
     <servlet-name>greetServlet</servlet-name>
     <url-pattern>/collab/collab</url-pattern>

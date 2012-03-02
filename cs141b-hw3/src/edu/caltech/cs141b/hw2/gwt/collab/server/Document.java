@@ -10,7 +10,6 @@ import javax.jdo.annotations.PrimaryKey;
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.Text;
 
-
 @PersistenceCapable
 public class Document {
 	@PrimaryKey
@@ -29,17 +28,15 @@ public class Document {
 	@Persistent
 	private Date lockedUntil = null;
 	
-	public Document(String title, Text contents, String lockedBy, Date lockedUntil) {
+	public Document(String title, Text contents) {
 		this.title = title;
 		this.contents = contents;
-		this.lockedBy = lockedBy;
-		this.lockedUntil = lockedUntil;
 	}
 	
 	public Key getKey() {
 		return key;
 	}
-
+	
 	public String getTitle() {
 		return title;
 	}

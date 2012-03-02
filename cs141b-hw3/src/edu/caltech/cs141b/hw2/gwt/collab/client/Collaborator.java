@@ -332,8 +332,11 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 						if (messageType == Messages.CODE_LOCK_READY) {
 							// Doc is ready to be locked. The rest of the string is doc ID.
 							String docKey = message.substring(1).replaceAll("\\s", "");
-							if (tabIsSelected() && tabKeys.contains(docKey)) {
+							int indOfDoc = tabKeys.indexOf(docKey);
+							if (tabIsSelected() && indOfDoc != -1) {
 								statusUpdate("Update: " + docKey + " is ready to be locked.");
+								tabQueueLengths.set(indOfDoc, 0);
+								queueStatus.setHTML("<br />Position 0 in line");
 								locker.lockDocument(docKey);
 							}
 						} else if (messageType == Messages.CODE_LOCK_NOT_READY) {
@@ -357,6 +360,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 						} else if (messageType == Messages.CODE_LOCK_EXPIRED) {
 							statusUpdate("Timeout occurred: document lock released.");
 							String docKey = message.substring(1).replaceAll("\\s", "");
+							queueStatus.setHTML("<br />No lock");
 							updateVarsAndUi(docKey, UiState.VIEWING);
 						}
 					}
