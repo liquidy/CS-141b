@@ -59,6 +59,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	// Status tracking.
 	private VerticalPanel statusArea = new VerticalPanel();
 	
+	protected HTML statusDisplay = new HTML();
 	private TabPanel tp = new TabPanel();
 	private TabBar tb = tp.getTabBar();
 	
@@ -68,6 +69,9 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	protected ArrayList<RichTextArea> tabContents = new ArrayList<RichTextArea>();
 	protected ArrayList<TextBox> tabTitles = new ArrayList<TextBox>();
 	protected ArrayList<UiState> uiStates = new ArrayList<UiState>();
+	
+	// to control tab overflow
+	private boolean tooManyTabs = false;
 	
 	/**
 	 * UI initialization.
@@ -118,6 +122,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		hp.add(lockButton);
 		hp.add(saveButton);
 		hp.add(closeButton);
+		hp.add(statusDisplay);
 		rightColVp.add(hp);
 		
 		// Add tab panel to rightColVp.
@@ -166,7 +171,11 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		if (event.getSource().equals(refreshList)) {
 			lister.getDocumentList();
 		} else if (event.getSource().equals(createNew)) {
-			creator.createDocument();
+			if (tooManyTabs){
+				statusDisplay.setText("Too many tabs open.");
+			} else {
+				creator.createDocument();
+			}
 		} else if (event.getSource().equals(refreshDoc)) {
 			if (tabIsSelected()) {
 				reader.getDocument(tabKeys.get(tb.getSelectedTab()));
@@ -209,8 +218,12 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	@Override
 	public void onChange(ChangeEvent event) {
 		if (event.getSource().equals(documentList)) {
-			String key = documentList.getValue(documentList.getSelectedIndex());
-			loadDoc(key);
+			if (tooManyTabs){
+				statusDisplay.setText("Too many tabs open.");
+			} else {
+				String key = documentList.getValue(documentList.getSelectedIndex());
+				loadDoc(key);
+			}
 		}
 	}
 	
@@ -293,7 +306,6 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 
 	protected void addNewTab(String key, RichTextArea contents, 
 			TextBox title) {
-		
 		// Update local variables.
 		currentTabInd = tb.getTabCount();
 		tabKeys.add(key);
@@ -308,6 +320,11 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		tp.add(contents, tabHeader);
 		// Select the last tab for the user.
 		tp.selectTab(tb.getTabCount() - 1);
+		
+		// set tab overflow boolean
+		if (tb.getTabCount() == 4){
+			tooManyTabs = true;
+		}
 	}
 	
 	private void removeTabAtInd(int i) {
@@ -328,6 +345,10 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		} else {
 			currentTabInd = -1;
 			setUiToState(UiState.NOT_VIEWING);
+		}
+		if (tooManyTabs){
+			tooManyTabs = false;
+			statusDisplay.setText("");
 		}
 	}
 	
