@@ -1,5 +1,6 @@
 package edu.caltech.cs141b.hw5.gwt.collab.server;
 
+import java.sql.Time;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -29,6 +30,7 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
                                      implements CollaboratorService {
 	
 	public static final int LOCK_TIMEOUT = 30;     // Seconds
+	private static final int TIME_ZONE_OFFSET = -28800000;
 	
 	@SuppressWarnings("unused")
 	private static final Logger log = Logger.getLogger(CollaboratorServiceImpl.class.toString());
@@ -83,7 +85,10 @@ public class CollaboratorServiceImpl extends RemoteServiceServlet
 			// figure out if a document is available to be locked. If it is,
 			// lock it and persist the new timestamps; otherwise, throw an exception.
 			if (isLockUnavailable(persistedDoc, ip)) {
-				throw new LockUnavailable("Document locked until " + persistedDoc.getLockedUntil());
+				// time is in UTC; subtract so it adjusts to PST.
+				// this is bad because it's hardcoded :[.
+				throw new LockUnavailable("Lock unavailable until " + new Time(persistedDoc.getLockedUntil().getTime()
+						+  TIME_ZONE_OFFSET));
 			} else {
 				persistedDoc.setLockedBy(ip);
 				Calendar cal = Calendar.getInstance();

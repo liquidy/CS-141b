@@ -19,6 +19,7 @@ import android.widget.Toast;
 import android.util.Log;
 
 import java.io.FileNotFoundException;
+import java.sql.Time;
 import java.util.Date;
 
 public class DocActivity extends Activity{
@@ -156,18 +157,18 @@ public class DocActivity extends Activity{
     private void lockDocument(){
         try {
             lDoc = service.lockDocument(uDoc.getKey());
+            statusPane.setText("Successfully locked until " +
+              new Time(lDoc.getLockedUntil().getTime()));
+            enableEditing();
+            lockReleasable = true;
         } catch (LockUnavailable e) {
-            statusPane.setText("Could not acquire lock");
+        	statusPane.setText(e.getMessage());
             e.printStackTrace();
         } catch (InvalidRequest e) {
             statusPane.setText("Error acquiring lock");
             // TODO Auto-generated catch block
             e.printStackTrace();
-        } finally {
-            statusPane.setText("Lock successfully acquired");
-            enableEditing();
-            lockReleasable = true;
-        }
+        } 
     }
 
     // when editing is enabled, have lock.
