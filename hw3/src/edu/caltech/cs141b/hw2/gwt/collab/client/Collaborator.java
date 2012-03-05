@@ -99,6 +99,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		// docsVp holds document list and relevant buttons (refresh / create new).
 		documentList.setStyleName("doc-list");
 		leftColVp.add(documentList);
+		documentList.setWidth("400");
 		leftColVp.setStyleName("list-column");
 		
 		// Add console to leftColVp.
@@ -115,6 +116,10 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		// the tabPanel for documents (as well as some relevant buttons)
 		VerticalPanel rightColVp = new VerticalPanel();
 
+		//horizontal panel to show display
+		HorizontalPanel statusDisplayPanel = new HorizontalPanel();
+		statusDisplayPanel.add(statusDisplay);
+		rightColVp.add(statusDisplayPanel);
 		// Create horizontal panel that holds the document-specific buttons.
 		HorizontalPanel hp = new HorizontalPanel();
 		hp.setSpacing(10);
@@ -122,7 +127,6 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		hp.add(lockButton);
 		hp.add(saveButton);
 		hp.add(closeButton);
-		hp.add(statusDisplay);
 		rightColVp.add(hp);
 		
 		// Add tab panel to rightColVp.
@@ -302,6 +306,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		}
 		final HTML statusUpd = new HTML(status);
 		statusArea.add(statusUpd);
+		statusDisplay.setText(status);
 	}
 
 	protected void addNewTab(String key, RichTextArea contents, 

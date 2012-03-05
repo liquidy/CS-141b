@@ -1,5 +1,7 @@
 package edu.caltech.cs141b.hw2.gwt.collab.client;
 
+import java.sql.Time;
+
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 
@@ -32,8 +34,8 @@ public class DocLocker implements AsyncCallback<LockedDocument> {
 						"wrong credentials; save failed. It's locked by: " + 
 						caughtEx.getCredentials());
 			} else {
-				collaborator.statusUpdate("Lock is unavailable; save failed. " +
-						"It's locked until " + caughtEx.getLockedUntil());
+				collaborator.statusUpdate("Lock is unavailable. " +
+						"It's locked until " + new Time(caughtEx.getLockedUntil().getTime()));
 			}
 			collaborator.updateVarsAndUi(caughtEx.getKey(), UiState.VIEWING);
 		} else {
@@ -47,7 +49,8 @@ public class DocLocker implements AsyncCallback<LockedDocument> {
 
 	@Override
 	public void onSuccess(LockedDocument result) {
-		collaborator.statusUpdate("Lock retrieved for document.");
+		collaborator.statusUpdate("Lock retrieved for document. Locked until " +
+				new Time(result.getLockedUntil().getTime()));
 		gotDoc(result);
 	}
 	
