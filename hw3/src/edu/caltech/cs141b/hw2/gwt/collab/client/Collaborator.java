@@ -222,10 +222,10 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	@Override
 	public void onChange(ChangeEvent event) {
 		if (event.getSource().equals(documentList)) {
-			if (tooManyTabs){
+			String key = documentList.getValue(documentList.getSelectedIndex());
+			if (tooManyTabs && !(tabKeys.contains(key))){
 				statusDisplay.setText("Too many tabs open.");
 			} else {
-				String key = documentList.getValue(documentList.getSelectedIndex());
 				loadDoc(key);
 			}
 		}
@@ -238,6 +238,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		if (savedLoc != -1) {
 			// Select the appropriate tab; this should fire the SelectionHandler.
 			tp.selectTab(savedLoc);
+			statusDisplay.setText("Document loaded successfully");
 		} else {
 			addNewTab(key, new RichTextArea(), new TextBox());
 			reader.getDocument(key);
