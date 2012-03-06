@@ -240,13 +240,12 @@ public class DocActivity extends Activity{
 
     private void releaseIfLocked(){
         // release the lock if there is one
-        boolean success = true;
         if (lockReleasable){
             try {
                 service.releaseLock(lDoc);
+                statusPane.setText("Lock released; changes deleted.");
             } catch (LockExpired e) {
                 statusPane.setText("Lock expired; changes deleted.");
-                success = false;
                 e.printStackTrace();
             } catch (InvalidRequest e) {
                 // TODO Auto-generated catch block
@@ -255,10 +254,9 @@ public class DocActivity extends Activity{
                 disableEditing();
                 loadDocument();
                 lockReleasable = false;
+                timer.cancel();
             }
-            if (success){
-                statusPane.setText("Lock released; changes deleted.");
-            } 
+            
         }
     }
 }
