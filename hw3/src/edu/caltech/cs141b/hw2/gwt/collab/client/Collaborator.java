@@ -73,6 +73,8 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	// to control tab overflow
 	private boolean tooManyTabs = false;
 	
+	private String changedKey = null;
+	
 	/**
 	 * UI initialization.
 	 * 
@@ -212,6 +214,20 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 				// Update UI and corresponding variables.
 				removeTabAtInd(indOfTab);
 			}
+		} else if (event.getSource().equals(documentList)){
+		    // only use this one if the select document is the one
+		    // just closed
+		    
+		    String key = documentList.getValue(documentList.getSelectedIndex());
+		    if (key == changedKey){
+		        // if it was just closed, then there shouldn't be
+		        // too many tabs, but just in case
+		        if (tooManyTabs && !(tabKeys.contains(key))){
+	                statusDisplay.setText("Too many tabs open.");
+	            } else {
+	                loadDoc(key);
+	            }
+		    }
 		}
 	}
 
@@ -222,11 +238,11 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	@Override
 	public void onChange(ChangeEvent event) {
 		if (event.getSource().equals(documentList)) {
-			String key = documentList.getValue(documentList.getSelectedIndex());
-			if (tooManyTabs && !(tabKeys.contains(key))){
+			changedKey = documentList.getValue(documentList.getSelectedIndex());
+			if (tooManyTabs && !(tabKeys.contains(changedKey))){
 				statusDisplay.setText("Too many tabs open.");
 			} else {
-				loadDoc(key);
+				loadDoc(changedKey);
 			}
 		}
 	}
