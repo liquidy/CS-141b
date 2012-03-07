@@ -213,6 +213,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 				}
 				// Update UI and corresponding variables.
 				removeTabAtInd(indOfTab);
+				documentList.setSelectedIndex(-1);
 			}
 		} else if (event.getSource().equals(documentList)){
 		    // only use this one if the select document is the one
