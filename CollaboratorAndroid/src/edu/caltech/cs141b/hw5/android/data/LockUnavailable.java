@@ -8,6 +8,7 @@ package edu.caltech.cs141b.hw5.android.data;
 public class LockUnavailable extends Exception {
 
 	private static final long serialVersionUID = -8039330302911776861L;
+	private String expireTime = null;
 	
 	public LockUnavailable() {
 		

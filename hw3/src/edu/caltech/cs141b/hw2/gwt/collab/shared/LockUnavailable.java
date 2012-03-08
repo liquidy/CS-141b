@@ -24,6 +24,10 @@ public class LockUnavailable extends Exception {
 		super(message);
 	}
 	
+	public LockUnavailable(Date lockedUntil) {
+		super("");
+		this.lockedUntil = lockedUntil;
+	}
 	public LockUnavailable(boolean wrongCredentials, Date lockedUntil, String key,
 			String credentials) {
 		

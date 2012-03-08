@@ -25,7 +25,7 @@ import edu.caltech.cs141b.hw5.gwt.collab.shared.UnlockedDocument;
 public class CollaboratorServiceWrapper {
 
     // Replace hostname with the deployed App Engine address
-    String url = "http://localhost:8888/collab/protoc";
+    String url = "http://5manithreads.appspot.com/collab/protoc";
     
     ProtoBufConnector conn;
     

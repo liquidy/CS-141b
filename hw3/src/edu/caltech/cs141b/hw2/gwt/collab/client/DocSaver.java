@@ -27,11 +27,9 @@ public class DocSaver implements AsyncCallback<UnlockedDocument> {
 			LockExpired caughtEx = (LockExpired) caught;
 			if (caughtEx.getWrongCredentials()) {
 				collaborator.statusUpdate("Lock hasn't expired, but you have the" +
-						"wrong credentials; save failed. It's locked by: " + 
-						caughtEx.getCredentials());
+						"wrong credentials; save failed.");
 			} else {
-				collaborator.statusUpdate("Lock has already expired; save failed. " +
-						"It's locked until " + caughtEx.getLockedUntil());
+				collaborator.statusUpdate("Lock has already expired; save failed.");
 			}
 			collaborator.updateVarsAndUi(caughtEx.getKey(), UiState.VIEWING);
 		} else {

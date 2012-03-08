@@ -12,7 +12,7 @@ public enum UiState {
 	NOT_VIEWING (false, false, false, false, false, false),
 	VIEWING (true, true, false, true, false, false),
 	LOCKED (false, false, true, true, true, true),
-	LOCKING (false, false, false, false, false, false),
+	LOCKING (false, true, false, false, false, false),
 	SAVING (false, false, false, false, false, false);
 	
 	public boolean refreshDocEnabled;

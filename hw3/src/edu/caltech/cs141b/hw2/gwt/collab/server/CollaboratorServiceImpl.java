@@ -76,7 +76,7 @@ implements CollaboratorService {
 			Date currentDate = new Date();
 			Date lockedUntil = persistedDoc.getLockedUntil();
 			if (lockedUntil != null && currentDate.before(lockedUntil)) {
-				throw new LockUnavailable("Document locked until " + persistedDoc.getLockedUntil());
+				throw new LockUnavailable(persistedDoc.getLockedUntil());
 			}
 			
 			persistedDoc.setLockedBy(getThreadLocalRequest().getRemoteAddr());

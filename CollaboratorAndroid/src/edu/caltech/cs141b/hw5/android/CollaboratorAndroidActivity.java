@@ -53,6 +53,7 @@ public class CollaboratorAndroidActivity extends Activity {
 				R.layout.list_item, docTitles);
 		list.setAdapter(listAdapter);
 
+		// when a list item is clicked, open the document in the docactivity view
 		list.setOnItemClickListener(new OnItemClickListener() {
 			public void onItemClick(AdapterView<?> parent, View view,
 					int position, long id) {
@@ -78,6 +79,7 @@ public class CollaboratorAndroidActivity extends Activity {
 
 		});
 
+		// start activity to create new document
 		newDoc.setOnClickListener(new View.OnClickListener() {
 			public void onClick(View view) {
 				Intent newPage = new Intent(view.getContext(), DocActivity.class);
@@ -89,13 +91,15 @@ public class CollaboratorAndroidActivity extends Activity {
 		});
 	}
 
+	// after the document activity completes, refresh the document list
+	// to reflect any changes
 	protected void onActivityResult(int requestCode, int resultCode,
 			Intent data) {
 		refreshDocumentList();
 	}
 
 	public void refreshDocumentList(){
-		// Test getting the document list and print it out on screen
+		// refreshes the displayed document list
 		List<DocumentMetadata> metas = service.getDocumentList();
 
 		docTitles.clear();
