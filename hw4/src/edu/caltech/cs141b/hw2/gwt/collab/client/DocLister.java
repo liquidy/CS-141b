@@ -35,19 +35,18 @@ public class DocLister implements AsyncCallback<List<DocumentMetadata>> {
 	public void onSuccess(List<DocumentMetadata> result) {
 		if (result == null || result.size() == 0) {
 			collaborator.statusUpdate("No documents available.");
-		}
-		else {
+		} else {
 			collaborator.statusUpdate("Document list updated.");
-			GWT.log("Got " + result.size() + " documents.");
-			
-			collaborator.documentList.clear();
-			for (DocumentMetadata meta : result) {
-				collaborator.documentList.addItem(
-						meta.getTitle(), meta.getKey());
-			}
-			
-			collaborator.refreshList.setEnabled(true);
 		}
+		GWT.log("Got " + result.size() + " documents.");
+
+		collaborator.documentList.clear();
+		for (DocumentMetadata meta : result) {
+			collaborator.documentList.addItem(
+					meta.getTitle(), meta.getKey());
+		}
+
+		collaborator.refreshList.setEnabled(true);
 	}
 	
 }

@@ -38,9 +38,9 @@ import edu.caltech.cs141b.hw2.gwt.collab.shared.Messages;
 public class Collaborator extends Composite implements ClickHandler, ChangeHandler {
 
 	public static final boolean SHOW_CONSOLE = true;
-	public static final int THINKING_RANGE_START = 0;  // ms
+	public static final int THINKING_RANGE_START = 100;  // ms
 	public static final int THINKING_RANGE_END = 2000;
-	public static final int EATING_RANGE_START = 0;
+	public static final int EATING_RANGE_START = 100;
 	public static final int EATING_RANGE_END = 200;
 
 	protected CollaboratorServiceAsync collabService;
@@ -79,7 +79,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	protected DocReader reader = new DocReader(this);
 	protected DocRequestor requestor = new DocRequestor(this);
 	protected DocUnrequestor unrequestor = new DocUnrequestor(this);
-	protected DocLocker locker = new DocLocker(this);
+	protected DocReaderLocked lockedReader = new DocReaderLocked(this);
 	protected DocReleaser releaser = new DocReleaser(this);
 	protected DocSaver saver = new DocSaver(this);
 	protected DocCreator creator = new DocCreator(this);
@@ -330,14 +330,15 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 					public void onMessage(String message) {
 						char messageType = message.charAt(0);
 						if (messageType == Messages.CODE_LOCK_READY) {
-							// Doc is ready to be locked. The rest of the string is doc ID.
+							// Doc is locked. The rest of the string is doc ID.
 							String docKey = message.substring(1).replaceAll("\\s", "");
 							int indOfDoc = tabKeys.indexOf(docKey);
 							if (tabIsSelected() && indOfDoc != -1) {
-								statusUpdate("Update: " + docKey + " is ready to be locked.");
+								statusUpdate("Update: " + docKey + "'s lock was acquired.");
 								tabQueueLengths.set(indOfDoc, 0);
 								queueStatus.setHTML("<br />Position 0 in line");
-								locker.lockDocument(docKey);
+								// Because the doc is locked, go ahead and just fetch the document.
+								lockedReader.lockDocument(docKey);
 							}
 						} else if (messageType == Messages.CODE_LOCK_NOT_READY) {
 							// Doc is not ready to be locked. The rest of the string is

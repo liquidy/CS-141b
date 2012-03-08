@@ -1,6 +1,7 @@
 package edu.caltech.cs141b.hw2.gwt.collab.server;
 
 import java.util.Date;
+import java.util.LinkedList;
 
 import javax.jdo.annotations.IdGeneratorStrategy;
 import javax.jdo.annotations.PersistenceCapable;
@@ -12,6 +13,8 @@ import com.google.appengine.api.datastore.Text;
 
 @PersistenceCapable
 public class Document {
+	
+	// Fields below are a part of the document.
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Key key = null;
@@ -27,6 +30,13 @@ public class Document {
 	
 	@Persistent
 	private Date lockedUntil = null;
+	
+	// Fields below are related to the document.
+	@Persistent
+	private String lockExpirationTaskName = null;
+	
+	@Persistent
+	private LinkedList<String> clientQueue = new LinkedList<String>();
 	
 	public Document(String title, Text contents) {
 		this.title = title;
@@ -67,5 +77,17 @@ public class Document {
 	
 	public void setLockedUntil(Date lockedUntil) {
 		this.lockedUntil = lockedUntil;
+	}
+	
+	public String getLockExpirationTaskName() {
+		return lockExpirationTaskName;
+	}
+	
+	public void setLockExpirationTaskName(String lockExpirationTaskName) {
+		this.lockExpirationTaskName = lockExpirationTaskName;
+	}
+	
+	public LinkedList<String> getClientQueue() {
+		return clientQueue;
 	}
 }

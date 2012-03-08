@@ -24,7 +24,7 @@ public interface CollaboratorServiceAsync {
 	void unrequestDocument(String documentKey, String token,
 			AsyncCallback<String> callback);
 	
-	void lockDocument(String documentKey, String token,
+	void getLockedDocument(String documentKey, String token,
 			AsyncCallback<LockedDocument> callback);
 
 	void getDocument(String documentKey,
