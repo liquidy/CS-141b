@@ -14,6 +14,10 @@
     <servlet-name>lockExpirationTaskServlet</servlet-name>
     <servlet-class>edu.caltech.cs141b.hw2.gwt.collab.server.LockExpirationTaskServlet</servlet-class>
   </servlet>
+  <servlet>
+    <servlet-name>collaboratorServerTaskServlet</servlet-name>
+    <servlet-class>edu.caltech.cs141b.hw2.gwt.collab.server.CollaboratorServerTaskServlet</servlet-class>
+  </servlet>
   
   <security-constraint>
   	<web-resource-collection>
@@ -31,6 +35,10 @@
   <servlet-mapping>
     <servlet-name>lockExpirationTaskServlet</servlet-name>
     <url-pattern>/task/lockExpiration</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>collaboratorServerTaskServlet</servlet-name>
+    <url-pattern>/task/collaboratorServer</url-pattern>
   </servlet-mapping>
   
   <!-- Default page to serve -->

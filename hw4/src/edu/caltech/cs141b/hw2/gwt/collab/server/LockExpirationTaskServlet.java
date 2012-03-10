@@ -30,7 +30,7 @@ public class LockExpirationTaskServlet extends HttpServlet {
 
 		// Poll the relevant doc queue.
 		PersistenceManager pm = PMF.get().getPersistenceManager();
-		int retries = CollaboratorServiceImpl.NUM_RETRIES;
+		int retries = CollaboratorServer.NUM_RETRIES;
 		while (true) {
 			Hashtable<String, String> messages = new Hashtable<String, String>();
 			ArrayList<TaskOptions> tasks = new ArrayList<TaskOptions>();
@@ -40,7 +40,7 @@ public class LockExpirationTaskServlet extends HttpServlet {
 				
 				Key key = KeyFactory.stringToKey(docKey);
 				Document persistedDoc = pm.getObjectById(Document.class, key);
-				CollaboratorServiceImpl.pollDocQueue(persistedDoc, true, pm, messages, tasks);
+				CollaboratorServer.pollDocQueue(persistedDoc, true, pm, messages, tasks);
 				pm.makePersistent(persistedDoc);
 				
 				txn.commit();

@@ -35,6 +35,8 @@ public class DocCreator implements AsyncCallback<UnlockedDocument> {
 
 	@Override
 	public void onSuccess(UnlockedDocument result) {
+		assert result != null;
+		
 		collaborator.statusUpdate("Document '" + result.getTitle()
 				+ "' successfully created.");
 		

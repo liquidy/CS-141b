@@ -38,6 +38,10 @@ public class DocSaver implements AsyncCallback<UnlockedDocument> {
 
 	@Override
 	public void onSuccess(UnlockedDocument result) {
+		if (result == null) {
+			collaborator.statusUpdate("Document not saved yet. Await further correspondence.");
+			return;
+		}
 		collaborator.statusUpdate("Document '" + result.getTitle()
 				+ "' successfully saved.");
 		collaborator.updateVarsAndUi(result.getKey(),

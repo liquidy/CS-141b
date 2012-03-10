@@ -76,7 +76,6 @@ public interface CollaboratorService extends RemoteService {
 	 *         the document properties (but not the locking primitives)
 	 *         potentially modified
 	 * @param token the token that identifies the client
-	 * @return the read-only version of the saved document
 	 * @throws LockExpired if the locking primitives in the supplied
 	 *         LockedDocument object cannot be used to modify the document
 	 */

@@ -5,8 +5,6 @@ import java.util.ArrayList;
 import com.google.gwt.appengine.channel.client.Channel;
 import com.google.gwt.appengine.channel.client.ChannelFactory;
 import com.google.gwt.appengine.channel.client.ChannelFactory.ChannelCreatedCallback;
-import com.google.gwt.appengine.channel.client.SocketError;
-import com.google.gwt.appengine.channel.client.SocketListener;
 import com.google.gwt.event.dom.client.ChangeEvent;
 import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.event.dom.client.ClickEvent;
@@ -28,9 +26,7 @@ import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.ToggleButton;
 import com.google.gwt.user.client.ui.VerticalPanel;
 
-import edu.caltech.cs141b.hw2.gwt.collab.server.CollaboratorServiceImpl;
 import edu.caltech.cs141b.hw2.gwt.collab.shared.LockedDocument;
-import edu.caltech.cs141b.hw2.gwt.collab.shared.Messages;
 
 /**
  * Main class for a single Collaborator widget.
@@ -41,61 +37,61 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	public static final int THINKING_RANGE_START = 100;  // ms
 	public static final int THINKING_RANGE_END = 2000;
 	public static final int EATING_RANGE_START = 100;
-	public static final int EATING_RANGE_END = 200;
+	public static final int EATING_RANGE_END = 2000;
 
-	protected CollaboratorServiceAsync collabService;
+	CollaboratorServiceAsync collabService;
 
 	// UI elements:
-	protected VerticalPanel statusArea = new VerticalPanel();
-	protected HTML queueStatus = new HTML();
-	protected HorizontalPanel hp = new HorizontalPanel();
-	protected TabPanel tp = new TabPanel();
-	protected TabBar tb = tp.getTabBar();
-	protected ListBox documentList = new ListBox();
+	VerticalPanel statusArea = new VerticalPanel();
+	HTML queueStatus = new HTML();
+	HorizontalPanel hp = new HorizontalPanel();
+	TabPanel tp = new TabPanel();
+	TabBar tb = tp.getTabBar();
+	ListBox documentList = new ListBox();
 	// Buttons for managing available documents.
-	protected PushButton refreshList = new PushButton(
+	PushButton refreshList = new PushButton(
 			new Image("images/refresh_small.png"));
-	protected PushButton createNew = new PushButton(
+	PushButton createNew = new PushButton(
 			new Image("images/plus_small.png"));
 	// Buttons for displaying document information and editing document content.
-	protected PushButton refreshDoc = new PushButton(
+	PushButton refreshDoc = new PushButton(
 			new Image("images/refresh.png"));
-	protected PushButton lockButtonUnlocked = new PushButton(
+	PushButton lockButtonUnlocked = new PushButton(
 			new Image("images/locked.png"));
-	protected PushButton lockButtonLocked = new PushButton(
+	PushButton lockButtonLocked = new PushButton(
 			new Image("images/unlocked.png"));
-	protected PushButton lockButtonRequesting = new PushButton(
+	PushButton lockButtonRequesting = new PushButton(
 			new Image("images/loading.gif"));
-	protected PushButton saveButton = new PushButton(
+	PushButton saveButton = new PushButton(
 			new Image("images/save.png"));
-	protected PushButton closeButton = new PushButton(
+	PushButton closeButton = new PushButton(
 			new Image("images/close.png"));
-	protected ToggleButton simulateButton = new ToggleButton(
+	ToggleButton simulateButton = new ToggleButton(
 			new Image("images/play_button.png"),
 			new Image("images/pause_button.gif"));
 
 	// Callback objects.
-	protected DocLister lister = new DocLister(this);
-	protected DocReader reader = new DocReader(this);
-	protected DocRequestor requestor = new DocRequestor(this);
-	protected DocUnrequestor unrequestor = new DocUnrequestor(this);
-	protected DocReaderLocked lockedReader = new DocReaderLocked(this);
-	protected DocReleaser releaser = new DocReleaser(this);
-	protected DocSaver saver = new DocSaver(this);
-	protected DocCreator creator = new DocCreator(this);
-	protected ChannelCreator channelCreator = new ChannelCreator(this);
+	DocLister lister = new DocLister(this);
+	DocReader reader = new DocReader(this);
+	DocRequestor requestor = new DocRequestor(this);
+	DocUnrequestor unrequestor = new DocUnrequestor(this);
+	DocReaderLocked lockedReader = new DocReaderLocked(this);
+	DocReleaser releaser = new DocReleaser(this);
+	DocSaver saver = new DocSaver(this);
+	DocCreator creator = new DocCreator(this);
+	ChannelCreator channelCreator = new ChannelCreator(this);
 
 	// Variables for keeping track of current states of the application.
-	protected ArrayList<String> tabKeys = new ArrayList<String>();
-	protected ArrayList<RichTextArea> tabContents = new ArrayList<RichTextArea>();
-	protected ArrayList<TextBox> tabTitles = new ArrayList<TextBox>();
-	protected ArrayList<Integer> tabQueueLengths = new ArrayList<Integer>();
-	protected ArrayList<UiState> uiStates = new ArrayList<UiState>();
-	protected boolean channelIsSetup = false;
-	protected String channelToken = null;
-	protected boolean simulating = false;
-	protected Timer thinkingTimer = null;
-	protected Timer eatingTimer = null;
+	ArrayList<String> tabKeys = new ArrayList<String>();
+	ArrayList<RichTextArea> tabContents = new ArrayList<RichTextArea>();
+	ArrayList<TextBox> tabTitles = new ArrayList<TextBox>();
+	ArrayList<Integer> tabQueueLengths = new ArrayList<Integer>();
+	ArrayList<UiState> uiStates = new ArrayList<UiState>();
+	boolean channelIsSetup = false;
+	String channelToken = null;
+	boolean simulating = false;
+	Timer thinkingTimer = null;
+	Timer eatingTimer = null;
 
 	/**
 	 * UI initialization.
@@ -302,7 +298,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		}
 	}
 
-	protected void loadDoc(String key) {
+	void loadDoc(String key) {
 		// If it's already open in a tab, save the location of the tab
 		// and retrieve the title and contents from that one.
 		int savedLoc = tabKeys.indexOf(key);
@@ -315,65 +311,12 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		}
 	}
 
-	protected void setUpChannel() {
+	void setUpChannel() {
 		// Establish the channel handlers with our given channel token.
 		ChannelFactory.createChannel(channelToken, new ChannelCreatedCallback() {
 			@Override
 			public void onChannelCreated(Channel channel) {
-				channel.open(new SocketListener() {
-					@Override
-					public void onOpen() {
-						statusUpdate("Channel successfully opened!");
-						channelIsSetup = true;
-					}
-					@Override
-					public void onMessage(String message) {
-						char messageType = message.charAt(0);
-						if (messageType == Messages.CODE_LOCK_READY) {
-							// Doc is locked. The rest of the string is doc ID.
-							String docKey = message.substring(1).replaceAll("\\s", "");
-							int indOfDoc = tabKeys.indexOf(docKey);
-							if (tabIsSelected() && indOfDoc != -1) {
-								statusUpdate("Update: " + docKey + "'s lock was acquired.");
-								tabQueueLengths.set(indOfDoc, 0);
-								queueStatus.setHTML("<br />Position 0 in line");
-								// Because the doc is locked, go ahead and just fetch the document.
-								lockedReader.lockDocument(docKey);
-							}
-						} else if (messageType == Messages.CODE_LOCK_NOT_READY) {
-							// Doc is not ready to be locked. The rest of the string is
-							// the number of people in front of us in the queue.
-							String restOfString = message.substring(1);
-							int delimiter = restOfString.indexOf(
-									CollaboratorServiceImpl.DELIMITER);
-							int numPeopleLeft = Integer.parseInt(
-									restOfString.substring(0, delimiter));
-							String docId = restOfString.substring(delimiter + 1);
-							docId = docId.replaceAll("\\s", "");
-							int indOfDoc = tabKeys.indexOf(docId);
-							if (tabIsSelected() && indOfDoc != -1) {
-								statusUpdate("Update: " + numPeopleLeft + " people are now" +
-										" ahead of you for document " + docId + ".");
-								tabQueueLengths.set(indOfDoc, numPeopleLeft);
-								queueStatus.setHTML("<br />Position " +
-										numPeopleLeft + " in line");
-							}
-						} else if (messageType == Messages.CODE_LOCK_EXPIRED) {
-							statusUpdate("Timeout occurred: document lock released.");
-							String docKey = message.substring(1).replaceAll("\\s", "");
-							queueStatus.setHTML("<br />No lock");
-							updateVarsAndUi(docKey, UiState.VIEWING);
-						}
-					}
-					@Override
-					public void onError(SocketError error) {
-						statusUpdate("Channel error:" + error.getDescription());
-					}
-					@Override
-					public void onClose() {
-						statusUpdate("Channel closed!");
-					}
-				});
+				channel.open(new ChannelMessageListener(Collaborator.this));
 			}
 		});
 	}
@@ -382,7 +325,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	 * Updates relevant state-capturing variables and updates UI
 	 * if necessary.
 	 */
-	protected void updateVarsAndUi(String key, String title, 
+	void updateVarsAndUi(String key, String title, 
 			String contents, UiState state) {
 		// Update local data structures.
 		int indResult = tabKeys.indexOf(key);
@@ -401,7 +344,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	/**
 	 * Just update the state corresponding to the key.
 	 */
-	protected void updateVarsAndUi(String key, UiState state) {
+	void updateVarsAndUi(String key, UiState state) {
 		// Update local data structures.
 		int indResult = tabKeys.indexOf(key);
 		if (indResult == -1) {
@@ -419,7 +362,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	 * 
 	 * @param state the UI state to switch to (as defined in UiState.java)
 	 */
-	protected void setUiStateIfNoSim(UiState state) {
+	void setUiStateIfNoSim(UiState state) {
 		if (simulating) {
 			return;
 		}
@@ -433,7 +376,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	 * 
 	 * @param state the UI state to switch to (as defined in UiState.java)
 	 */
-	protected void setUiState(UiState state) {
+	void setUiState(UiState state) {
 		refreshDoc.setEnabled(state.refreshDocEnabled);
 		lockButtonUnlocked.setEnabled(state.lockButtonUnlockedEnabled);
 		lockButtonLocked.setEnabled(state.lockButtonLockedEnabled);
@@ -477,7 +420,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	 * 
 	 * @param status the status to add to the console window
 	 */
-	protected void statusUpdate(String status) {
+	void statusUpdate(String status) {
 		while (statusArea.getWidgetCount() > 6) {
 			statusArea.remove(1);
 		}
@@ -485,14 +428,14 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		statusArea.add(statusUpd);
 	}
 
-	protected void simulateThinking() {
+	void simulateThinking() {
 		int sleepRange = THINKING_RANGE_END - THINKING_RANGE_START + 1;
 		int waitingTime = 
 				(int) (THINKING_RANGE_START + sleepRange * Math.random()) + 1;
 		thinkingTimer.schedule(waitingTime);
 	}
 
-	protected void simulateEating() {
+	void simulateEating() {
 		int currentInd = tb.getSelectedTab();
 		// Write client's token into the document.
 		tabContents.get(currentInd).setHTML(
@@ -503,12 +446,12 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		eatingTimer.schedule(waitingTime);
 	}
 	
-	protected boolean tabIsSelected() {
+	boolean tabIsSelected() {
 		int currentTabInd = tb.getSelectedTab();
 		return currentTabInd >= 0 && currentTabInd < tabKeys.size();
 	}
 
-	protected void addNewTab(String key) {
+	void addNewTab(String key) {
 		TextBox title = new TextBox();
 		RichTextArea contents = new RichTextArea();
 
