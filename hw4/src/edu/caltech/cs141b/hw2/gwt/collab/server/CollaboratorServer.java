@@ -2,7 +2,6 @@ package edu.caltech.cs141b.hw2.gwt.collab.server;
 
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.ConcurrentModificationException;
 import java.util.Date;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -44,7 +43,7 @@ public class CollaboratorServer {
 	public static final String DELIMITER = "~";
 
 	private static final Logger log = Logger.getLogger(CollaboratorServer.class.getName());
-	
+
 	private CollaboratorServer() {}
 
 	public static String setUpChannel() {
@@ -94,53 +93,61 @@ public class CollaboratorServer {
 	public static DocRequestorResult requestDocument(String docKey, String token) {
 		PersistenceManager pm = PMF.get().getPersistenceManager();
 		String clientId = pm.getObjectById(ChannelInfo.class, token).getClient();
-		Hashtable<String, String> messages = new Hashtable<String, String>();
-		ArrayList<TaskOptions> tasks = new ArrayList<TaskOptions>();
-		Transaction txn = pm.currentTransaction();
-		try {
-			txn.begin();
+		int retries = NUM_RETRIES;
+		while (true) {
+			Hashtable<String, String> messages = new Hashtable<String, String>();
+			ArrayList<TaskOptions> tasks = new ArrayList<TaskOptions>();
+			pm = PMF.get().getPersistenceManager();
+			Transaction txn = pm.currentTransaction();
+			try {
+				txn.begin();
 
-			Document doc = pm.getObjectById(Document.class, docKey);
-			Queue<String> clientQueue = doc.getClientQueue();
-			// If the client is already in the queue, throw an exception.
-			if (clientQueue.contains(clientId)) {
-				throw new RuntimeException("requestDocument was called, and the document " +
-						docKey + " queue already includes client " + clientId);
-			}
-			// Add the client to the queue. Also, be sure to lock if the queue is empty.
-			int numPeopleInFront = clientQueue.size();
-			if (numPeopleInFront == 0) {
-				// Lock the document for this client.
-				doc = lockDocument(doc, token, pm, tasks);
-				messages.put(clientId, Messages.LOCK_READY + docKey);
-			}
-			clientQueue.add(clientId);
-			pm.makePersistent(doc);
-
-			txn.commit();
-
-			return new DocRequestorResult(docKey, numPeopleInFront);
-		} catch (ConcurrentModificationException e) {
-			tasks.add(TaskOptions.Builder.withUrl("/task/collaboratorServer")
-					.param("methodName", "requestDocument")
-					.param("docKey", docKey)
-					.param("token", token));
-			log.warning("Enqueuing requestDocument job, docKey: " + docKey + ", token: " + token);
-			return null;
-		} finally {
-			if (txn.isActive()) {
-				txn.rollback();
-			} else {
-				// Send out any relevant messages if the transaction went through.
-				for (String client : messages.keySet()) {
-					sendMessage(client, messages.get(client));
+				Document doc = pm.getObjectById(Document.class, docKey);
+				Queue<String> clientQueue = doc.getClientQueue();
+				// If the client is already in the queue, throw an exception.
+				if (clientQueue.contains(clientId)) {
+					throw new RuntimeException("requestDocument was called, and the document " +
+							docKey + " queue already includes client " + clientId);
 				}
-				// Enqueue any relevant tasks if the transaction went through.
-				for (TaskOptions task : tasks) {
-					QueueFactory.getDefaultQueue().add(task);
+				// Add the client to the queue. Also, be sure to lock if the queue is empty.
+				int numPeopleInFront = clientQueue.size();
+				if (numPeopleInFront == 0) {
+					// Lock the document for this client.
+					doc = lockDocument(doc, token, pm, tasks);
+					messages.put(clientId, Messages.LOCK_READY + docKey);
 				}
+				clientQueue.add(clientId);
+				pm.makePersistent(doc);
+
+				txn.commit();
+
+				return new DocRequestorResult(docKey, numPeopleInFront);
+			} catch (JDODataStoreException e) {
+				if (retries == 0) {
+					tasks.add(TaskOptions.Builder.withUrl("/task/collaboratorServer")
+							.param("methodName", "requestDocument")
+							.param("docKey", docKey)
+							.param("token", token));
+					log.warning("Enqueuing requestDocument job, docKey: " + docKey + ", token: " + token);
+					return null;
+				}
+				retries--;
+				log.info("Retrying requestDocument job, docKey: " + docKey + ", token: " + token);
+			} finally {
+				if (txn.isActive()) {
+					txn.rollback();
+				} else {
+					// Send out any relevant messages if the transaction went through.
+					for (String client : messages.keySet()) {
+						sendMessage(client, messages.get(client));
+					}
+					// Enqueue any relevant tasks if the transaction went through.
+					for (TaskOptions task : tasks) {
+						QueueFactory.getDefaultQueue().add(task);
+					}
+				}
+				pm.close();
 			}
-			pm.close();
 		}
 	}
 
@@ -150,6 +157,7 @@ public class CollaboratorServer {
 		int retries = NUM_RETRIES;
 		while (true) {
 			Hashtable<String, String> messages = new Hashtable<String, String>();
+			pm = PMF.get().getPersistenceManager();
 			Transaction txn = pm.currentTransaction();
 			try {
 				txn.begin();
@@ -184,7 +192,7 @@ public class CollaboratorServer {
 				txn.commit();
 
 				return docKey;
-			} catch (ConcurrentModificationException e) {
+			} catch (JDODataStoreException e) {
 				if (retries == 0) {
 					throw e;
 				}
@@ -260,79 +268,86 @@ public class CollaboratorServer {
 
 		// Persist Document JDO.
 		PersistenceManager pm = PMF.get().getPersistenceManager();
-		Hashtable<String, String> messages = new Hashtable<String, String>();
-		ArrayList<TaskOptions> tasks = new ArrayList<TaskOptions>();
-		Transaction txn = pm.currentTransaction();
-		try {
-			txn.begin();
+		int retries = NUM_RETRIES;
+		while (true) {
+			Hashtable<String, String> messages = new Hashtable<String, String>();
+			ArrayList<TaskOptions> tasks = new ArrayList<TaskOptions>();
+			pm = PMF.get().getPersistenceManager();
+			Transaction txn = pm.currentTransaction();
+			try {
+				txn.begin();
 
-			// Remove the client from the timeout queue.
-			removeClientFromTimeoutQueue(docKey, pm);
+				// Remove the client from the timeout queue.
+				removeClientFromTimeoutQueue(docKey, pm);
 
-			// Get persisted document.
-			Document doc = null;
-			if (key != null) {
-				doc = pm.getObjectById(Document.class, key);
-			}
-
-			// If persistedDoc is null, then the Document object should be persisted,
-			// so that a key will automatically be generated. Otherwise, take the
-			// object, check credentials, modify some fields, and persist again.
-			if (doc == null) {
-				doc = new Document(lockedDoc.getTitle(), new Text(lockedDoc.getContents()));
-			} else {
-				Date currentDate = new Date();
-				Date lockedUntil = doc.getLockedUntil();
-				String lockedBy = doc.getLockedBy();
-				// A lock is not expired if: 
-				// 1) lockedUntil is set AND after now, AND
-				// 2) lockedBy is set AND is this user
-				if (!((lockedUntil != null && currentDate.before(lockedUntil)) &&
-						(lockedBy != null && lockedBy.equals(token)))) {
-					throw new LockExpired(docKey);
+				// Get persisted document.
+				Document doc = null;
+				if (key != null) {
+					doc = pm.getObjectById(Document.class, key);
 				}
-				// Release doc and update contents.
-				doc.setTitle(lockedDoc.getTitle());
-				doc.setContents(new Text(lockedDoc.getContents()));
-				doc.setLockedBy(null);
-				doc.setLockedUntil(null);
-				// Also poll the doc queue because this client is done.
-				pollDocQueue(doc, false, pm, messages, tasks);
-			}
-			pm.makePersistent(doc);
-			docKey = KeyFactory.keyToString(doc.getKey());
 
-			txn.commit();
+				// If persistedDoc is null, then the Document object should be persisted,
+				// so that a key will automatically be generated. Otherwise, take the
+				// object, check credentials, modify some fields, and persist again.
+				if (doc == null) {
+					doc = new Document(lockedDoc.getTitle(), new Text(lockedDoc.getContents()));
+				} else {
+					Date currentDate = new Date();
+					Date lockedUntil = doc.getLockedUntil();
+					String lockedBy = doc.getLockedBy();
+					// A lock is not expired if: 
+					// 1) lockedUntil is set AND after now, AND
+					// 2) lockedBy is set AND is this user
+					if (!((lockedUntil != null && currentDate.before(lockedUntil)) &&
+							(lockedBy != null && lockedBy.equals(token)))) {
+						throw new LockExpired(docKey);
+					}
+					// Release doc and update contents.
+					doc.setTitle(lockedDoc.getTitle());
+					doc.setContents(new Text(lockedDoc.getContents()));
+					doc.setLockedBy(null);
+					doc.setLockedUntil(null);
+					// Also poll the doc queue because this client is done.
+					pollDocQueue(doc, false, pm, messages, tasks);
+				}
+				pm.makePersistent(doc);
+				docKey = KeyFactory.keyToString(doc.getKey());
 
-			// Pack up UnlockedDocument to return.
-			return new UnlockedDocument(
-					docKey,
-					doc.getTitle(), 
-					doc.getContents().getValue());
-		} catch (JDODataStoreException e) {
-			// NOTE: ConcurrentModificationException here is thrown as JDODataStoreException for some reason...
-			// TODO: Figure out why?
-			
-			tasks.add(TaskOptions.Builder.withUrl("/task/collaboratorServer")
-					.param("methodName", "saveDocument")
-					.param("docKey", docKey)
-					.param("token", token));
-			log.warning("Enqueuing saveDocument job, docKey: " + docKey + ", token: " + token);
-			return null;
-		} finally {
-			if (txn.isActive()) {
-				txn.rollback();
-			} else {
-				// Send out any relevant messages if the transaction went through.
-				for (String client : messages.keySet()) {
-					sendMessage(client, messages.get(client));
+				txn.commit();
+
+				// Pack up UnlockedDocument to return.
+				return new UnlockedDocument(
+						docKey,
+						doc.getTitle(), 
+						doc.getContents().getValue());
+			} catch (JDODataStoreException e) {
+				if (retries == 0) {
+					tasks.add(TaskOptions.Builder.withUrl("/task/collaboratorServer")
+							.param("methodName", "saveDocument")
+							.param("docKey", docKey)
+							.param("docTitle", lockedDoc.getTitle())
+							.param("docContents", lockedDoc.getContents())
+							.param("token", token));
+					log.warning("Enqueuing saveDocument job, docKey: " + docKey + ", token: " + token);
+					return null;
 				}
-				// Enqueue any relevant tasks if the transaction went through.
-				for (TaskOptions task : tasks) {
-					QueueFactory.getDefaultQueue().add(task);
+				retries--;
+				log.info("Retrying saveDocument job, docKey: " + docKey + ", token: " + token);
+			} finally {
+				if (txn.isActive()) {
+					txn.rollback();
+				} else {
+					// Send out any relevant messages if the transaction went through.
+					for (String client : messages.keySet()) {
+						sendMessage(client, messages.get(client));
+					}
+					// Enqueue any relevant tasks if the transaction went through.
+					for (TaskOptions task : tasks) {
+						QueueFactory.getDefaultQueue().add(task);
+					}
 				}
+				pm.close();
 			}
-			pm.close();
 		}
 	}
 
@@ -342,6 +357,7 @@ public class CollaboratorServer {
 		while (true) {
 			Hashtable<String, String> messages = new Hashtable<String, String>();
 			ArrayList<TaskOptions> tasks = new ArrayList<TaskOptions>();
+			pm = PMF.get().getPersistenceManager();
 			Transaction txn = pm.currentTransaction();
 			try {
 				txn.begin();
@@ -379,7 +395,7 @@ public class CollaboratorServer {
 				txn.commit();
 
 				return docKey;
-			} catch (ConcurrentModificationException e) {
+			} catch (JDODataStoreException e) {
 				if (retries == 0) {
 					throw e;
 				}
