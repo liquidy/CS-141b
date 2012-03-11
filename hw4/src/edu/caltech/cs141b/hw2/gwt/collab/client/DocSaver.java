@@ -28,6 +28,10 @@ public class DocSaver implements AsyncCallback<UnlockedDocument> {
 			LockExpired caughtEx = (LockExpired) caught;
 			collaborator.statusUpdate("Lock has already expired; save failed.");
 			collaborator.updateVarsAndUi(caughtEx.getKey(), UiState.VIEWING);
+			
+			if (collaborator.simulating) {
+				collaborator.simulateThinking();
+			}
 		} else {
 			collaborator.statusUpdate("Error saving document" +
 					"; caught exception " + caught.getClass() +
@@ -39,7 +43,8 @@ public class DocSaver implements AsyncCallback<UnlockedDocument> {
 	@Override
 	public void onSuccess(UnlockedDocument result) {
 		if (result == null) {
-			collaborator.statusUpdate("Document not saved yet. Await further correspondence.");
+			collaborator.statusUpdate("Document not saved yet. The job is " +
+					"in the task queue, and a response will come back via the channel.");
 			return;
 		}
 		collaborator.statusUpdate("Document '" + result.getTitle()

@@ -10,7 +10,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.UUID;
+import java.util.logging.Logger;
 
+import javax.jdo.JDODataStoreException;
 import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
 import javax.jdo.Transaction;
@@ -41,6 +43,8 @@ public class CollaboratorServer {
 	public static final int NUM_RETRIES = 5;
 	public static final String DELIMITER = "~";
 
+	private static final Logger log = Logger.getLogger(CollaboratorServer.class.getName());
+	
 	private CollaboratorServer() {}
 
 	public static String setUpChannel() {
@@ -121,6 +125,7 @@ public class CollaboratorServer {
 					.param("methodName", "requestDocument")
 					.param("docKey", docKey)
 					.param("token", token));
+			log.warning("Enqueuing requestDocument job, docKey: " + docKey + ", token: " + token);
 			return null;
 		} finally {
 			if (txn.isActive()) {
@@ -304,11 +309,15 @@ public class CollaboratorServer {
 					docKey,
 					doc.getTitle(), 
 					doc.getContents().getValue());
-		} catch (ConcurrentModificationException e) {
+		} catch (JDODataStoreException e) {
+			// NOTE: ConcurrentModificationException here is thrown as JDODataStoreException for some reason...
+			// TODO: Figure out why?
+			
 			tasks.add(TaskOptions.Builder.withUrl("/task/collaboratorServer")
 					.param("methodName", "saveDocument")
 					.param("docKey", docKey)
 					.param("token", token));
+			log.warning("Enqueuing saveDocument job, docKey: " + docKey + ", token: " + token);
 			return null;
 		} finally {
 			if (txn.isActive()) {
@@ -396,8 +405,8 @@ public class CollaboratorServer {
 
 		// Update queue for the doc.
 		LinkedList<String> clientIds = doc.getClientQueue();
-		String clientId = clientIds.remove(0);
-		if (clientId != null) {
+		if (!clientIds.isEmpty()) {
+			String clientId = clientIds.remove(0);
 			if (lockExpired) {
 				messages.put(clientId, Messages.LOCK_EXPIRED + docKey);
 			}

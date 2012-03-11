@@ -37,7 +37,7 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 	public static final int THINKING_RANGE_START = 100;  // ms
 	public static final int THINKING_RANGE_END = 2000;
 	public static final int EATING_RANGE_START = 100;
-	public static final int EATING_RANGE_END = 2000;
+	public static final int EATING_RANGE_END = 200;
 
 	CollaboratorServiceAsync collabService;
 
@@ -182,8 +182,8 @@ public class Collaborator extends Composite implements ClickHandler, ChangeHandl
 		initWidget(outerHp);
 
 		// Make initial necessary calls to server.
-		lister.getDocumentList();
 		channelCreator.createChannel();
+		lister.getDocumentList();
 		
 		// Initialize timers.
 		thinkingTimer = new Timer() {

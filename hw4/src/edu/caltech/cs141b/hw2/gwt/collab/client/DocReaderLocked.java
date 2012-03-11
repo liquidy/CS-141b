@@ -29,8 +29,12 @@ public class DocReaderLocked implements AsyncCallback<LockedDocument> {
 	public void onFailure(Throwable caught) {
 		if (caught instanceof LockExpired) {
 			LockExpired caughtEx = (LockExpired) caught;
-			collaborator.statusUpdate("Lock had already expired; release failed.");
+			collaborator.statusUpdate("Lock had already expired; retrieve failed.");
 			collaborator.updateVarsAndUi(caughtEx.getKey(), UiState.VIEWING);
+			
+			if (collaborator.simulating) {
+				collaborator.simulateEating();
+			}
 		} else {
 			collaborator.statusUpdate("Error retrieving lock"
 					+ "; caught exception " + caught.getClass()
@@ -41,7 +45,7 @@ public class DocReaderLocked implements AsyncCallback<LockedDocument> {
 
 	@Override
 	public void onSuccess(LockedDocument result) {
-		collaborator.statusUpdate("Lock retrieved for document.");
+		collaborator.statusUpdate("Lock and locked document retrieved.");
 		collaborator.updateVarsAndUi(result.getKey(),
 				result.getTitle(),
 				result.getContents(),

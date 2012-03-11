@@ -32,7 +32,8 @@ public class DocRequestor implements AsyncCallback<DocRequestorResult> {
 	@Override
 	public void onSuccess(DocRequestorResult result) {
 		if (result == null) {
-			collaborator.statusUpdate("Document not requested yet. Await further correspondence.");
+			collaborator.statusUpdate("Document not requested yet. The job is " +
+					"in the task queue, and a response will come back via the channel.");
 			return;
 		}
 		int numPeopleLeft = result.getNumPeopleLeft();

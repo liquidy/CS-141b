@@ -94,6 +94,10 @@ class ChannelMessageListener implements SocketListener {
 		String docKey = message.substring(1);
 		collab.queueStatus.setHTML("<br />No lock");
 		collab.updateVarsAndUi(docKey, UiState.VIEWING);
+		
+		if (collab.simulating) {
+			collab.simulateThinking();
+		}
 	}
 
 	private void handleDocSaved(String message) {
