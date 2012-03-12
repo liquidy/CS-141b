@@ -31,8 +31,10 @@ public class LockExpirationTaskServlet extends HttpServlet {
 		String docKey = req.getParameter("docKey");
 		boolean successfulExecution = handleLockExpired(docKey);
 		if (successfulExecution) {
+			log.info("Processed task successfuly: docKey: " + docKey);
 			resp.setStatus(HttpServletResponse.SC_OK);
 		} else {
+			log.warning("Failed to process task successfuly: docKey: " + docKey);
 			resp.sendError(HttpServletResponse.SC_REQUEST_TIMEOUT, "Error occurred. Will retry task later...");
 		}
 	}
