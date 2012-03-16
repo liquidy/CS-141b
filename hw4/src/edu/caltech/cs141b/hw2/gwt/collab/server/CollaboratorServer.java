@@ -121,6 +121,15 @@ public class CollaboratorServer {
 
 				txn.commit();
 
+				// Send out any relevant messages if the transaction went through.
+				for (String client : messages.keySet()) {
+					sendMessage(client, messages.get(client));
+				}
+				// Enqueue any relevant tasks if the transaction went through.
+				for (TaskOptions task : tasks) {
+					QueueFactory.getDefaultQueue().add(task);
+				}
+				
 				return new DocRequestorResult(docKey, numPeopleInFront);
 			} catch (JDODataStoreException e) {
 				if (retries == 0) {
@@ -136,15 +145,6 @@ public class CollaboratorServer {
 			} finally {
 				if (txn.isActive()) {
 					txn.rollback();
-				} else {
-					// Send out any relevant messages if the transaction went through.
-					for (String client : messages.keySet()) {
-						sendMessage(client, messages.get(client));
-					}
-					// Enqueue any relevant tasks if the transaction went through.
-					for (TaskOptions task : tasks) {
-						QueueFactory.getDefaultQueue().add(task);
-					}
 				}
 				pm.close();
 			}
@@ -191,6 +191,11 @@ public class CollaboratorServer {
 
 				txn.commit();
 
+				// Send out any relevant messages if the transaction went through.
+				for (String client : messages.keySet()) {
+					sendMessage(client, messages.get(client));
+				}
+				
 				return docKey;
 			} catch (JDODataStoreException e) {
 				if (retries == 0) {
@@ -200,11 +205,6 @@ public class CollaboratorServer {
 			} finally {
 				if (txn.isActive()) {
 					txn.rollback();
-				} else {
-					// Send out any relevant messages if the transaction went through.
-					for (String client : messages.keySet()) {
-						sendMessage(client, messages.get(client));
-					}
 				}
 				pm.close();
 			}
@@ -314,8 +314,16 @@ public class CollaboratorServer {
 				docKey = KeyFactory.keyToString(doc.getKey());
 
 				txn.commit();
+				
+				// Send out any relevant messages if the transaction went through.
+				for (String client : messages.keySet()) {
+					sendMessage(client, messages.get(client));
+				}
+				// Enqueue any relevant tasks if the transaction went through.
+				for (TaskOptions task : tasks) {
+					QueueFactory.getDefaultQueue().add(task);
+				}
 
-				// Pack up UnlockedDocument to return.
 				return new UnlockedDocument(
 						docKey,
 						doc.getTitle(), 
@@ -336,15 +344,6 @@ public class CollaboratorServer {
 			} finally {
 				if (txn.isActive()) {
 					txn.rollback();
-				} else {
-					// Send out any relevant messages if the transaction went through.
-					for (String client : messages.keySet()) {
-						sendMessage(client, messages.get(client));
-					}
-					// Enqueue any relevant tasks if the transaction went through.
-					for (TaskOptions task : tasks) {
-						QueueFactory.getDefaultQueue().add(task);
-					}
 				}
 				pm.close();
 			}
@@ -394,6 +393,11 @@ public class CollaboratorServer {
 
 				txn.commit();
 
+				// Send out any relevant messages if the transaction went through.
+				for (String client : messages.keySet()) {
+					sendMessage(client, messages.get(client));
+				}
+				
 				return docKey;
 			} catch (JDODataStoreException e) {
 				if (retries == 0) {
@@ -403,11 +407,6 @@ public class CollaboratorServer {
 			} finally {
 				if (txn.isActive()) {
 					txn.rollback();
-				} else {
-					// Send out any relevant messages if the transaction went through.
-					for (String client : messages.keySet()) {
-						sendMessage(client, messages.get(client));
-					}
 				}
 				pm.close();
 			}
